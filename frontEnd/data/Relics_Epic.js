@@ -475,4 +475,18 @@ export const RelicsEpic = [
         Relic_Description: "+1|+1, RegenerationI cost 1 less for each Poro ally in play.",
         Relic_Icon: "https://dd.b.pvp.net/6_12_0/adventure/en_us/img/relics/R0151.png"
     },
+    {
+        Relic_ID: "Epic_69",
+        Relic_Name: "Celestial Staff",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Spellshield, Challenger. Each round, the first time damage is healed from me while you don't have the attack token, Rally.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/R0153.png?17b75"
+    },
+    {
+        Relic_ID: "Epic_70",
+        Relic_Name: "Yeti Spotting Guide",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Play: Shuffle 3 Snowballs into your deck. Attack: Grant +1|+1 to me and to all Snowballs in your deck.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/R0154.png?c8272"
+    },
 ]
