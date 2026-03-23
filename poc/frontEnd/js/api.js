@@ -1,4 +1,3 @@
-const DEFAULT_API_BASE = 'http://localhost:3000/api';
 const API_TIMEOUT_MS = 10000;
 
 let warnShown = false;
@@ -18,7 +17,20 @@ function detectApiBase() {
     if (fromLocalStorage) return normalizeApiBase(fromLocalStorage);
   }
 
-  return DEFAULT_API_BASE;
+  if (typeof window !== 'undefined' && window.location) {
+    const { hostname, origin, port, protocol } = window.location;
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (protocol.startsWith('http')) {
+      if (isLocalHost && port && port !== '3000') {
+        return 'http://localhost:3000/api';
+      }
+
+      return `${origin}/api`;
+    }
+  }
+
+  return 'http://localhost:3000/api';
 }
 
 const API_BASE = detectApiBase();
