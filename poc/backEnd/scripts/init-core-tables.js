@@ -1,4 +1,4 @@
-const { DATABASE_FILE, ensureDatabaseFile } = require('../config/database');
+const { getDatabaseFile, ensureDatabaseFile } = require('../config/database');
 const { getMissingBaseTables } = require('../services/dbBootstrap.service');
 
 async function main() {
@@ -6,7 +6,7 @@ async function main() {
   const missing = await getMissingBaseTables();
 
   console.log('[db:init] JSON database ready');
-  console.log('[db:init] File:', DATABASE_FILE);
+  console.log('[db:init] File:', getDatabaseFile());
 
   if (missing.length) {
     console.warn('[db:init] Missing collections:', missing.join(', '));

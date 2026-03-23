@@ -18,7 +18,9 @@ function resolveDatabaseFile() {
     : path.resolve(process.cwd(), configuredPath);
 }
 
-const DATABASE_FILE = resolveDatabaseFile();
+const CONFIGURED_DATABASE_FILE = resolveDatabaseFile();
+let activeDatabaseFile = CONFIGURED_DATABASE_FILE;
+let fallbackWarningShown = false;
 
 const REQUIRED_BASE_TABLES = [
   'catalog.regions',
@@ -37,22 +39,63 @@ const REQUIRED_BASE_TABLES = [
 
 let writeQueue = Promise.resolve();
 
+function getDatabaseFile() {
+  return activeDatabaseFile;
+}
+
+function canFallbackToDefault(error) {
+  return activeDatabaseFile !== DEFAULT_DATABASE_FILE
+    && error
+    && ['EPERM', 'EACCES', 'EROFS'].includes(error.code);
+}
+
+function switchToDefaultDatabaseFile(error) {
+  if (!canFallbackToDefault(error)) {
+    return false;
+  }
+
+  activeDatabaseFile = DEFAULT_DATABASE_FILE;
+
+  if (!fallbackWarningShown) {
+    fallbackWarningShown = true;
+    console.warn(
+      `[json-db] Cannot use configured JSON_DB_PATH (${CONFIGURED_DATABASE_FILE}). ` +
+      `Falling back to ${DEFAULT_DATABASE_FILE}.`,
+      error.message
+    );
+  }
+
+  return true;
+}
+
 function stripBom(raw) {
   return String(raw || '').replace(/^\uFEFF/, '');
 }
 
-async function fileExists(filePath) {
+async function fileExists(filePath = getDatabaseFile()) {
   try {
     await fs.access(filePath);
     return true;
   } catch (error) {
+    if (switchToDefaultDatabaseFile(error)) {
+      return fileExists();
+    }
+
     return false;
   }
 }
 
 async function readDatabaseFile() {
-  const raw = await fs.readFile(DATABASE_FILE, 'utf8');
-  return JSON.parse(stripBom(raw));
+  try {
+    const raw = await fs.readFile(getDatabaseFile(), 'utf8');
+    return JSON.parse(stripBom(raw));
+  } catch (error) {
+    if (switchToDefaultDatabaseFile(error)) {
+      return readDatabaseFile();
+    }
+
+    throw error;
+  }
 }
 
 function extractExportExpression(source, exportName) {
@@ -324,19 +367,29 @@ async function writeDatabase(database) {
     }
   };
 
-  await fs.mkdir(path.dirname(DATABASE_FILE), { recursive: true });
+  const databaseFile = getDatabaseFile();
 
-  const tempFile = `${DATABASE_FILE}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(tempFile, `${JSON.stringify(nextDatabase, null, 2)}\n`, 'utf8');
-  await fs.rename(tempFile, DATABASE_FILE);
+  try {
+    await fs.mkdir(path.dirname(databaseFile), { recursive: true });
 
-  return nextDatabase;
+    const tempFile = `${databaseFile}.${process.pid}.${Date.now()}.tmp`;
+    await fs.writeFile(tempFile, `${JSON.stringify(nextDatabase, null, 2)}\n`, 'utf8');
+    await fs.rename(tempFile, databaseFile);
+
+    return nextDatabase;
+  } catch (error) {
+    if (switchToDefaultDatabaseFile(error)) {
+      return writeDatabase(database);
+    }
+
+    throw error;
+  }
 }
 
 async function seedDatabase({ preserveRuntimeData = true } = {}) {
   const freshDatabase = await buildSeedDatabase();
 
-  if (preserveRuntimeData && await fileExists(DATABASE_FILE)) {
+  if (preserveRuntimeData && await fileExists()) {
     const existingDatabase = await readDatabaseFile();
     return writeDatabase(mergeRuntimeCollections(freshDatabase, existingDatabase));
   }
@@ -345,7 +398,7 @@ async function seedDatabase({ preserveRuntimeData = true } = {}) {
 }
 
 async function ensureDatabaseFile() {
-  if (await fileExists(DATABASE_FILE)) {
+  if (await fileExists()) {
     return readDatabaseFile();
   }
 
@@ -382,7 +435,8 @@ async function healthCheck() {
 }
 
 module.exports = {
-  DATABASE_FILE,
+  DATABASE_FILE: CONFIGURED_DATABASE_FILE,
+  getDatabaseFile,
   REQUIRED_BASE_TABLES,
   ensureDatabaseFile,
   seedDatabase,
