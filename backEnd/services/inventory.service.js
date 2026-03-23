@@ -403,6 +403,7 @@ async function exportAppState(userId) {
 
   return {
     appState: {
+      ...baseState,
       version: 1,
       options: baseState.options || { showSimulatedCraftView: false },
       customChampions: baseState.customChampions || {},

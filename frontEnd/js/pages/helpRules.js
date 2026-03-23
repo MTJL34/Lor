@@ -52,11 +52,11 @@ export function HelpRulesPage() {
         
         Card('Sauvegarde & Export', [
             createElement('ul', { style: { paddingLeft: '1.5rem', color: 'var(--text-secondary)' } }, [
-                createElement('li', {}, ['Vos données sont sauvegardées automatiquement pendant la session en cours']),
-                createElement('li', {}, ['Au redémarrage du site, le localStorage est réinitialisé automatiquement']),
-                createElement('li', {}, ['Utilisez Export/Import pour faire des backups']),
+                createElement('li', {}, ['Vos données sont sauvegardées automatiquement dans le navigateur à chaque modification']),
+                createElement('li', {}, ['Si l\'API est disponible, elles sont aussi synchronisées avec le backend']),
+                createElement('li', {}, ['Utilisez Export/Import pour faire des backups ou transférer vos données']),
                 createElement('li', {}, ['Le JSON exporté contient votre inventaire + les calculs']),
-                createElement('li', {}, ['Si vous voulez conserver vos données entre relances, exportez un JSON'])
+                createElement('li', {}, ['En cas d\'API indisponible, l\'application garde un fallback local'])
             ])
         ]),
         

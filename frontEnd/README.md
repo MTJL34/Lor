@@ -104,6 +104,8 @@ Liste filtrée par région avec :
 ## 💾 Sauvegarde
 
 - **Automatique** : Vos données sont sauvegardées dans le `localStorage` du navigateur à chaque modification
+- **Synchronisation API** : Si le backend est disponible, l'état de l'application est aussi persisté côté serveur
+- **PoC inclus** : Les modifications faites dans `PoC Champions` et `PoC Reliques` sont persistées elles aussi
 - **Export/Import** : Faites des backups JSON pour transférer entre appareils
 
 ## 🔧 Personnalisation

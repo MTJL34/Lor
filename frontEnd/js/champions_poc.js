@@ -5,7 +5,14 @@ import { AllRelics } from "../data/Relics.js";
 import { Constellation_Number } from "../data/Constellation_Number.js";
 import { Cost } from "../data/Cost.js";
 import { Stars } from "../data/Stars.js";
-import { getCustomRelics } from "./pocSharedState.js";
+import {
+  initializePoCSharedState,
+  getChampionOverrides,
+  getCustomChampions,
+  getCustomRelics,
+  setChampionOverride,
+  upsertCustomChampion
+} from "./pocSharedState.js";
 
 const toNum = (v) => Number(v) || 0;
 const getLevelClass = (levelValue) => {
@@ -150,7 +157,7 @@ const constellationById = new Map(
   Constellation_Number.map(cn => [cn.Constellation_ID, cn])
 );
 const levelById = new Map(Level.map(level => [level.Level_ID, level]));
-const customChampions = [];
+const customChampions = getCustomChampions();
 const CHAMPION_FIELD_ORDER = [
   "Champion_ID",
   "Champion_Name",
@@ -165,13 +172,7 @@ const CHAMPION_FIELD_ORDER = [
   "AllRelics"
 ];
 
-// Keep PoC overrides in memory only. The page currently resets them on every load
-// anyway, and avoiding localStorage prevents iframe/storage security errors.
-function saveOverrides() {
-  return true;
-}
-
-const overrides = {};
+const overrides = getChampionOverrides();
 const editingRows = new Set();
 let activeRelicRarityFilter = "all";
 const filters = {
@@ -179,6 +180,20 @@ const filters = {
   region: "all",
   cost: "all"
 };
+
+function replaceArrayContents(target, values) {
+  target.splice(0, target.length, ...values);
+}
+
+function replaceObjectContents(target, values) {
+  Object.keys(target).forEach((key) => delete target[key]);
+  Object.assign(target, values);
+}
+
+function syncPersistedPoCState() {
+  replaceArrayContents(customChampions, getCustomChampions());
+  replaceObjectContents(overrides, getChampionOverrides());
+}
 
 function normalizeRelicRarity(rarity) {
   return String(rarity || "").trim().toLowerCase();
@@ -209,6 +224,17 @@ function getAllChampions() {
 
 function getChampionById(champId) {
   return getAllChampions().find(c => c.Champion_ID === champId) || null;
+}
+
+function upsertLocalCustomChampion(champion) {
+  const index = customChampions.findIndex(existingChampion => existingChampion.Champion_ID === champion.Champion_ID);
+
+  if (index === -1) {
+    customChampions.push(champion);
+    return;
+  }
+
+  customChampions[index] = champion;
 }
 
 function getDefaultId(list, key, fallback = 0) {
@@ -507,7 +533,7 @@ function createRelicMenu() {
       AllRelics: nextRelics
     };
 
-    saveOverrides(overrides);
+    setChampionOverride(champId, overrides[champId]);
     renderTable();
     closeRelicMenu();
   });
@@ -830,7 +856,7 @@ if (addChampionSubmitBtn) {
       normalizeRelicValue(addChampionRelic3Select?.value || "0")
     ];
 
-    customChampions.push(createChampionTemplate({
+    const nextChampion = createChampionTemplate({
       Champion_ID: nextChampionId,
       Champion_Name: cleanedName,
       Cost_ID: costId,
@@ -842,7 +868,10 @@ if (addChampionSubmitBtn) {
       Level_ID: levelId,
       Region_ID: regionId,
       AllRelics: allRelics
-    }));
+    });
+
+    upsertLocalCustomChampion(nextChampion);
+    upsertCustomChampion(nextChampion);
 
     if (addChampionPanel) addChampionPanel.style.display = "none";
     renderTable();
@@ -897,7 +926,7 @@ tbody.addEventListener("change", (event) => {
 
   overrides[champId] = nextOverride;
 
-  saveOverrides(overrides);
+  setChampionOverride(champId, nextOverride);
   renderTable();
 });
 
@@ -953,6 +982,16 @@ tbody.addEventListener("click", (event) => {
 populateFilters();
 initializeAddChampionForm();
 renderTable();
+
+initializePoCSharedState()
+  .then(() => {
+    syncPersistedPoCState();
+    initializeAddChampionForm();
+    renderTable();
+  })
+  .catch((error) => {
+    console.warn("[PoC] shared state refresh failed:", error.message);
+  });
 
 
 

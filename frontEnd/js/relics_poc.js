@@ -1,7 +1,11 @@
 import { RelicsCommon } from "../data/Relics_Common.js";
 import { RelicsRare } from "../data/Relics_Rare.js";
 import { RelicsEpic } from "../data/Relics_Epic.js";
-import { addCustomRelic, getCustomRelics } from "./pocSharedState.js";
+import {
+  addCustomRelic,
+  getCustomRelics,
+  initializePoCSharedState
+} from "./pocSharedState.js";
 
 const container = document.getElementById("relics-container");
 const RARITY_ORDER = ["Common", "Rare", "Epic"];
@@ -352,4 +356,12 @@ if (container) {
   });
 
   render();
+
+  initializePoCSharedState()
+    .then(() => {
+      render();
+    })
+    .catch((error) => {
+      console.warn("[PoC] relic state refresh failed:", error.message);
+    });
 }

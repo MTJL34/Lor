@@ -13,8 +13,12 @@ function detectApiBase() {
   if (fromWindow) return normalizeApiBase(fromWindow);
 
   if (typeof window !== 'undefined') {
-    const fromLocalStorage = window.localStorage.getItem('lor_api_base');
-    if (fromLocalStorage) return normalizeApiBase(fromLocalStorage);
+    try {
+      const fromLocalStorage = window.localStorage.getItem('lor_api_base');
+      if (fromLocalStorage) return normalizeApiBase(fromLocalStorage);
+    } catch (_) {
+      // localStorage can be unavailable in some iframe/privacy contexts.
+    }
   }
 
   if (typeof window !== 'undefined' && window.location) {
@@ -93,9 +97,23 @@ export async function fetchAppStateFromApi() {
 }
 
 export async function pushAppStateToApi(appState) {
+  let nextAppState = appState;
+
+  try {
+    const currentAppState = await fetchAppStateFromApi();
+    if (currentAppState && typeof currentAppState === 'object') {
+      nextAppState = {
+        ...currentAppState,
+        ...(appState || {})
+      };
+    }
+  } catch (_) {
+    // If the fetch fails, fall back to the provided payload only.
+  }
+
   await request('/inventory/import', {
     method: 'POST',
-    body: { appState }
+    body: { appState: nextAppState }
   });
   return true;
 }
