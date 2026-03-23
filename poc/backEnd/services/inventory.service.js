@@ -1,16 +1,17 @@
-const { query } = require('../config/database');
+const { readDatabase, mutateDatabase } = require('../config/database');
 const HttpError = require('../utils/HttpError');
-const { toSafeNonNegativeInt } = require('../utils/validation');
-const { getSiteDataPayload } = require('./siteData.service');
+const { toSafeInt, toSafeNonNegativeInt } = require('../utils/validation');
 const { toDbRegionName, toSiteDataRegionName } = require('../utils/regionAliases');
 
 const RESOURCE_KEYS = ['nova_crystal', 'nova_shards', 'star_crystal', 'gemstone', 'wild_shards'];
 
 function sanitizeInventoryInput(payload = {}) {
   const clean = {};
+
   for (const key of RESOURCE_KEYS) {
     clean[key] = toSafeNonNegativeInt(payload[key], 0);
   }
+
   return clean;
 }
 
@@ -29,30 +30,77 @@ function computeNeeded(totals = {}, inventory = {}) {
 
   for (const key of RESOURCE_KEYS) {
     const total = toSafeNonNegativeInt(totals[key], 0);
-    const inv = toSafeNonNegativeInt(inventory[key], 0);
-    needed[key] = Math.max(0, total - inv);
+    const current = toSafeNonNegativeInt(inventory[key], 0);
+    needed[key] = Math.max(0, total - current);
   }
 
   return needed;
 }
 
-async function listRegions() {
-  return query(
-    `
-    SELECT region_id, region_name
-    FROM region
-    WHERE region_name IS NOT NULL AND region_name <> ''
-    ORDER BY region_id ASC
-    `
-  );
+function normalizeUserId(userId) {
+  return toSafeInt(userId, NaN);
 }
 
-async function buildDefaultInventoryByDbRegionName() {
-  const siteData = await getSiteDataPayload();
+function getCatalogRegions(database) {
+  const regions = database.catalog && Array.isArray(database.catalog.regions)
+    ? database.catalog.regions
+    : [];
+
+  return [...regions].sort((left, right) => left.regionId - right.regionId);
+}
+
+function listRegions(database) {
+  return getCatalogRegions(database)
+    .filter((region) => region.regionName)
+    .map((region) => ({
+      region_id: region.regionId,
+      region_name: region.regionName
+    }));
+}
+
+function getRegionById(database, regionId) {
+  return getCatalogRegions(database).find((region) => region.regionId === regionId) || null;
+}
+
+function getUserCollection(database) {
+  return Array.isArray(database.users) ? database.users : [];
+}
+
+function getInventoryCollection(database) {
+  if (!Array.isArray(database.userInventories)) {
+    database.userInventories = [];
+  }
+
+  return database.userInventories;
+}
+
+function getAppStateCollection(database) {
+  if (!Array.isArray(database.userAppStates)) {
+    database.userAppStates = [];
+  }
+
+  return database.userAppStates;
+}
+
+function getUserById(database, userId) {
+  return getUserCollection(database).find((user) => user.id === userId) || null;
+}
+
+function getNextId(rows) {
+  return rows.reduce((maxId, row) => Math.max(maxId, row.id || 0), 0) + 1;
+}
+
+function getSiteRegions(database) {
+  const siteData = database.catalog && database.catalog.siteData;
+  return siteData && typeof siteData === 'object' && siteData.regions
+    ? siteData.regions
+    : {};
+}
+
+function buildDefaultInventoryByDbRegionName(database) {
   const defaults = new Map();
 
-  const regions = siteData && siteData.regions ? siteData.regions : {};
-  for (const [siteRegionName, data] of Object.entries(regions)) {
+  for (const [siteRegionName, data] of Object.entries(getSiteRegions(database))) {
     const dbRegionName = toDbRegionName(siteRegionName);
     defaults.set(dbRegionName, sanitizeInventoryInput(data.inventory_default || {}));
   }
@@ -60,100 +108,132 @@ async function buildDefaultInventoryByDbRegionName() {
   return defaults;
 }
 
-async function ensureUserInventoryRows(userId) {
-  const userRows = await query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId]);
-  if (!userRows.length) {
+function createInventoryRow(database, userId, regionId, values) {
+  const rows = getInventoryCollection(database);
+  const now = new Date().toISOString();
+
+  const row = {
+    id: getNextId(rows),
+    userId,
+    regionId,
+    ...sanitizeInventoryInput(values),
+    createdAt: now,
+    updatedAt: now
+  };
+
+  rows.push(row);
+  return row;
+}
+
+function toInventoryResponseRow(row) {
+  return {
+    region_id: row.regionId,
+    nova_crystal: row.nova_crystal,
+    nova_shards: row.nova_shards,
+    star_crystal: row.star_crystal,
+    gemstone: row.gemstone,
+    wild_shards: row.wild_shards,
+    updated_at: row.updatedAt
+  };
+}
+
+function ensureUserInventoryRowsInDatabase(database, userId) {
+  const user = getUserById(database, userId);
+
+  if (!user) {
     throw new HttpError(404, 'User not found');
   }
 
-  const regions = await listRegions();
-  const defaultsByRegionName = await buildDefaultInventoryByDbRegionName();
+  const inventoryRows = getInventoryCollection(database);
+  const defaultsByRegionName = buildDefaultInventoryByDbRegionName(database);
 
-  for (const region of regions) {
-    const defaults = defaultsByRegionName.get(region.region_name) || getEmptyInventory();
+  for (const region of listRegions(database)) {
+    const exists = inventoryRows.some(
+      (row) => row.userId === userId && row.regionId === region.region_id
+    );
 
-    await query(
-      `
-      INSERT INTO user_region_inventory (
-        user_id,
-        region_id,
-        nova_crystal,
-        nova_shards,
-        star_crystal,
-        gemstone,
-        wild_shards
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        updated_at = CURRENT_TIMESTAMP
-      `,
-      [
-        userId,
-        region.region_id,
-        defaults.nova_crystal,
-        defaults.nova_shards,
-        defaults.star_crystal,
-        defaults.gemstone,
-        defaults.wild_shards
-      ]
+    if (exists) {
+      continue;
+    }
+
+    createInventoryRow(
+      database,
+      userId,
+      region.region_id,
+      defaultsByRegionName.get(region.region_name) || getEmptyInventory()
     );
   }
 }
 
-async function getUserInventoryRows(userId) {
-  await ensureUserInventoryRows(userId);
+async function ensureUserInventoryRows(userId) {
+  const normalizedUserId = normalizeUserId(userId);
+  const database = await readDatabase();
 
-  return query(
-    `
-    SELECT
-      uri.region_id,
-      r.region_name,
-      uri.nova_crystal,
-      uri.nova_shards,
-      uri.star_crystal,
-      uri.gemstone,
-      uri.wild_shards,
-      uri.updated_at
-    FROM user_region_inventory uri
-    LEFT JOIN region r ON r.region_id = uri.region_id
-    WHERE uri.user_id = ?
-    ORDER BY uri.region_id ASC
-    `,
-    [userId]
+  if (!getUserById(database, normalizedUserId)) {
+    throw new HttpError(404, 'User not found');
+  }
+
+  const regions = listRegions(database);
+  const inventoryRows = getInventoryCollection(database);
+  const missing = regions.some(
+    (region) => !inventoryRows.some(
+      (row) => row.userId === normalizedUserId && row.regionId === region.region_id
+    )
   );
+
+  if (!missing) {
+    return;
+  }
+
+  await mutateDatabase((nextDatabase) => {
+    ensureUserInventoryRowsInDatabase(nextDatabase, normalizedUserId);
+  });
+}
+
+function getUserInventoryRowsFromDatabase(database, userId) {
+  ensureUserInventoryRowsInDatabase(database, userId);
+
+  const regionsById = new Map(getCatalogRegions(database).map((region) => [region.regionId, region]));
+
+  return getInventoryCollection(database)
+    .filter((row) => row.userId === userId)
+    .sort((left, right) => left.regionId - right.regionId)
+    .map((row) => ({
+      ...toInventoryResponseRow(row),
+      region_name: (regionsById.get(row.regionId) || {}).regionName || ''
+    }));
 }
 
 async function getUserInventory(userId) {
-  const rows = await getUserInventoryRows(userId);
-  const siteData = await getSiteDataPayload();
+  const normalizedUserId = normalizeUserId(userId);
+  await ensureUserInventoryRows(normalizedUserId);
 
-  const siteRegions = siteData && siteData.regions ? siteData.regions : {};
+  const database = await readDatabase();
+  const rows = getUserInventoryRowsFromDatabase(database, normalizedUserId);
+  const siteRegions = getSiteRegions(database);
 
   const regions = rows.map((row) => {
-    const dbName = row.region_name;
-    const siteRegionName = toSiteDataRegionName(dbName);
+    const siteRegionName = toSiteDataRegionName(row.region_name);
     const siteRegion = siteRegions[siteRegionName] || {};
-
     const inventory = sanitizeInventoryInput(row);
     const totals = sanitizeInventoryInput(siteRegion.totals || {});
-    const needed = computeNeeded(totals, inventory);
 
     return {
       regionId: row.region_id,
-      regionName: dbName,
+      regionName: row.region_name,
       displayRegionName: siteRegionName,
       inventory,
       totals,
-      needed,
+      needed: computeNeeded(totals, inventory),
       updatedAt: row.updated_at
     };
   });
 
-  const globalNeeded = regions.reduce((acc, region) => {
+  const globalNeeded = regions.reduce((accumulator, region) => {
     for (const key of RESOURCE_KEYS) {
-      acc[key] = (acc[key] || 0) + (region.needed[key] || 0);
+      accumulator[key] = (accumulator[key] || 0) + (region.needed[key] || 0);
     }
-    return acc;
+    return accumulator;
   }, getEmptyInventory());
 
   return {
@@ -163,130 +243,92 @@ async function getUserInventory(userId) {
   };
 }
 
-async function upsertUserRegionInventory(userId, regionId, payload) {
+function upsertUserRegionInventoryInDatabase(database, userId, regionId, payload) {
   const values = sanitizeInventoryInput(payload);
+  const region = getRegionById(database, regionId);
 
-  await query(
-    `
-    INSERT INTO user_region_inventory (
-      user_id,
-      region_id,
-      nova_crystal,
-      nova_shards,
-      star_crystal,
-      gemstone,
-      wild_shards
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      nova_crystal = VALUES(nova_crystal),
-      nova_shards = VALUES(nova_shards),
-      star_crystal = VALUES(star_crystal),
-      gemstone = VALUES(gemstone),
-      wild_shards = VALUES(wild_shards),
-      updated_at = CURRENT_TIMESTAMP
-    `,
-    [
-      userId,
-      regionId,
-      values.nova_crystal,
-      values.nova_shards,
-      values.star_crystal,
-      values.gemstone,
-      values.wild_shards
-    ]
+  if (!region) {
+    throw new HttpError(404, 'Region not found');
+  }
+
+  ensureUserInventoryRowsInDatabase(database, userId);
+
+  const inventoryRows = getInventoryCollection(database);
+  const existing = inventoryRows.find(
+    (row) => row.userId === userId && row.regionId === regionId
   );
 
-  const rows = await query(
-    `
-    SELECT
-      region_id,
-      nova_crystal,
-      nova_shards,
-      star_crystal,
-      gemstone,
-      wild_shards,
-      updated_at
-    FROM user_region_inventory
-    WHERE user_id = ? AND region_id = ?
-    LIMIT 1
-    `,
-    [userId, regionId]
+  if (!existing) {
+    return createInventoryRow(database, userId, regionId, values);
+  }
+
+  Object.assign(existing, values, {
+    updatedAt: new Date().toISOString()
+  });
+
+  return existing;
+}
+
+async function upsertUserRegionInventory(userId, regionId, payload) {
+  const normalizedUserId = normalizeUserId(userId);
+  const normalizedRegionId = toSafeInt(regionId, NaN);
+
+  const row = await mutateDatabase((database) =>
+    upsertUserRegionInventoryInDatabase(database, normalizedUserId, normalizedRegionId, payload)
   );
 
-  return rows[0] || null;
+  return toInventoryResponseRow(row);
 }
 
 async function craftNovaCrystal(userId, regionId, amount) {
+  const normalizedUserId = normalizeUserId(userId);
+  const normalizedRegionId = toSafeInt(regionId, NaN);
   const craftAmount = toSafeNonNegativeInt(amount, 0);
+
   if (craftAmount <= 0) {
     throw new HttpError(400, 'Craft amount must be > 0');
   }
 
-  const rows = await query(
-    `
-    SELECT id, nova_shards, nova_crystal
-    FROM user_region_inventory
-    WHERE user_id = ? AND region_id = ?
-    LIMIT 1
-    `,
-    [userId, regionId]
-  );
+  return mutateDatabase((database) => {
+    ensureUserInventoryRowsInDatabase(database, normalizedUserId);
 
-  if (!rows.length) {
-    throw new HttpError(404, 'Inventory row not found for region');
-  }
+    const row = getInventoryCollection(database).find(
+      (entry) => entry.userId === normalizedUserId && entry.regionId === normalizedRegionId
+    );
 
-  const row = rows[0];
-  const availableShards = toSafeNonNegativeInt(row.nova_shards, 0);
-  const maxCraftable = Math.floor(availableShards / 100);
+    if (!row) {
+      throw new HttpError(404, 'Inventory row not found for region');
+    }
 
-  if (craftAmount > maxCraftable) {
-    throw new HttpError(400, `Not enough nova_shards. Max craftable: ${maxCraftable}`);
-  }
+    const availableShards = toSafeNonNegativeInt(row.nova_shards, 0);
+    const maxCraftable = Math.floor(availableShards / 100);
 
-  await query(
-    `
-    UPDATE user_region_inventory
-    SET
-      nova_shards = nova_shards - ?,
-      nova_crystal = nova_crystal + ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-    `,
-    [craftAmount * 100, craftAmount, row.id]
-  );
+    if (craftAmount > maxCraftable) {
+      throw new HttpError(400, `Not enough nova_shards. Max craftable: ${maxCraftable}`);
+    }
 
-  const updated = await query(
-    `
-    SELECT
-      region_id,
-      nova_crystal,
-      nova_shards,
-      star_crystal,
-      gemstone,
-      wild_shards,
-      updated_at
-    FROM user_region_inventory
-    WHERE id = ?
-    LIMIT 1
-    `,
-    [row.id]
-  );
+    row.nova_shards -= craftAmount * 100;
+    row.nova_crystal += craftAmount;
+    row.updatedAt = new Date().toISOString();
 
-  return {
-    crafted: craftAmount,
-    inventory: updated[0]
-  };
+    return {
+      crafted: craftAmount,
+      inventory: {
+        id: row.id,
+        ...toInventoryResponseRow(row)
+      }
+    };
+  });
 }
 
-function normalizeImportedAppState(appState, dbRegionMap) {
-  const inventoryByRegion = (appState && appState.inventoryByRegion) || {};
+function normalizeImportedAppState(appState, regionIdByName) {
+  const inventoryByRegion = appState && appState.inventoryByRegion ? appState.inventoryByRegion : {};
   const prepared = [];
 
   for (const [regionName, inventory] of Object.entries(inventoryByRegion)) {
     const dbRegionName = toDbRegionName(regionName);
-    const regionId = dbRegionMap.get(dbRegionName);
+    const regionId = regionIdByName.get(dbRegionName);
+
     if (!regionId) {
       continue;
     }
@@ -301,60 +343,63 @@ function normalizeImportedAppState(appState, dbRegionMap) {
 }
 
 async function importAppState(userId, appState) {
-  await ensureUserInventoryRows(userId);
+  const normalizedUserId = normalizeUserId(userId);
 
-  const regions = await listRegions();
-  const dbRegionMap = new Map(regions.map((row) => [row.region_name, row.region_id]));
-  const rows = normalizeImportedAppState(appState, dbRegionMap);
+  return mutateDatabase((database) => {
+    ensureUserInventoryRowsInDatabase(database, normalizedUserId);
 
-  for (const entry of rows) {
-    await upsertUserRegionInventory(userId, entry.regionId, entry.inventory);
-  }
+    const regionIdByName = new Map(
+      listRegions(database).map((region) => [region.region_name, region.region_id])
+    );
+    const rows = normalizeImportedAppState(appState, regionIdByName);
 
-  await query(
-    `
-    INSERT INTO user_app_state (user_id, app_state_json)
-    VALUES (?, ?)
-    ON DUPLICATE KEY UPDATE
-      app_state_json = VALUES(app_state_json),
-      updated_at = CURRENT_TIMESTAMP
-    `,
-    [userId, JSON.stringify(appState || {})]
-  );
+    for (const entry of rows) {
+      upsertUserRegionInventoryInDatabase(
+        database,
+        normalizedUserId,
+        entry.regionId,
+        entry.inventory
+      );
+    }
 
-  return {
-    importedRegions: rows.length
-  };
+    const states = getAppStateCollection(database);
+    const existing = states.find((row) => row.userId === normalizedUserId);
+    const now = new Date().toISOString();
+
+    if (existing) {
+      existing.appState = appState || {};
+      existing.updatedAt = now;
+    } else {
+      states.push({
+        userId: normalizedUserId,
+        appState: appState || {},
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+
+    return {
+      importedRegions: rows.length
+    };
+  });
 }
 
 async function exportAppState(userId) {
-  await ensureUserInventoryRows(userId);
+  const normalizedUserId = normalizeUserId(userId);
+  await ensureUserInventoryRows(normalizedUserId);
 
-  const inventoryRows = await query(
-    `
-    SELECT uri.region_id, r.region_name,
-           uri.nova_crystal, uri.nova_shards, uri.star_crystal, uri.gemstone, uri.wild_shards
-    FROM user_region_inventory uri
-    JOIN region r ON r.region_id = uri.region_id
-    WHERE uri.user_id = ?
-    ORDER BY uri.region_id ASC
-    `,
-    [userId]
-  );
+  const database = await readDatabase();
+  const inventoryRows = getUserInventoryRowsFromDatabase(database, normalizedUserId);
 
   const inventoryByRegion = {};
   for (const row of inventoryRows) {
-    const siteName = toSiteDataRegionName(row.region_name);
-    inventoryByRegion[siteName] = sanitizeInventoryInput(row);
+    inventoryByRegion[toSiteDataRegionName(row.region_name)] = sanitizeInventoryInput(row);
   }
 
-  const stateRows = await query(
-    'SELECT app_state_json FROM user_app_state WHERE user_id = ? LIMIT 1',
-    [userId]
-  );
-
-  const persisted = stateRows[0] ? stateRows[0].app_state_json : null;
-  const baseState = persisted && typeof persisted === 'object' ? persisted : {};
+  const persisted = getAppStateCollection(database).find((row) => row.userId === normalizedUserId);
+  const baseState = persisted && persisted.appState && typeof persisted.appState === 'object'
+    ? persisted.appState
+    : {};
 
   return {
     appState: {

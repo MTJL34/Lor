@@ -13,17 +13,17 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  if (err && err.code === 'ER_DUP_ENTRY') {
-    return res.status(409).json({
-      error: 'Conflict',
-      message: 'Duplicate entry'
+  if (err && err.code === 'ENOENT') {
+    return res.status(500).json({
+      error: 'DatabaseError',
+      message: 'JSON database file is missing. Run `npm run db:setup` first.'
     });
   }
 
-  if (err && err.code === 'ER_NO_SUCH_TABLE') {
+  if (err instanceof SyntaxError) {
     return res.status(500).json({
       error: 'DatabaseError',
-      message: 'A required database table is missing. Run `npm run db:setup` first.'
+      message: 'JSON database file is invalid. Run `npm run db:setup` first.'
     });
   }
 

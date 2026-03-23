@@ -1,13 +1,16 @@
-const { ensureCoreTables, getMissingBaseTables } = require('../services/dbBootstrap.service');
+const { DATABASE_FILE, ensureDatabaseFile } = require('../config/database');
+const { getMissingBaseTables } = require('../services/dbBootstrap.service');
 
 async function main() {
-  await ensureCoreTables();
+  await ensureDatabaseFile();
   const missing = await getMissingBaseTables();
 
-  console.log('[db:init] Core backend tables ready');
+  console.log('[db:init] JSON database ready');
+  console.log('[db:init] File:', DATABASE_FILE);
+
   if (missing.length) {
-    console.warn('[db:init] Missing base tables:', missing.join(', '));
-    console.warn('[db:init] Run `npm run db:seed` to import base data');
+    console.warn('[db:init] Missing collections:', missing.join(', '));
+    console.warn('[db:init] Run `npm run db:seed` to regenerate the JSON database');
   }
 }
 

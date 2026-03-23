@@ -1,31 +1,29 @@
 # Backend API (LoR PoC)
 
-Backend Node.js/Express + MySQL pour ton projet LoR.
+Backend Node.js/Express avec persistance JSON.
 
 ## Prerequisites
 
 - Node.js 18+
-- MySQL 8+
-- DB accessible avec les variables d'environnement
+- Pas de MySQL requis
 
 ## Configuration
 
-1. Copier `.env.example` vers `.env` (dans `poc/` ou à la racine parent).
-2. Renseigner les credentials MySQL.
-3. Ajouter `JWT_SECRET`.
-4. (Conformite) Configurer si besoin:
+1. Copier `.env.example` vers `.env` (dans `poc/` ou a la racine parent).
+2. Ajouter `JWT_SECRET`.
+3. (Conformite) Configurer si besoin:
    - `TERMS_VERSION` (defaut: `2026-03`)
    - `PRIVACY_POLICY_VERSION` (defaut: `2026-03`)
    - `DATA_RETENTION_DAYS` (defaut: `365`)
 
-## Database setup
+## JSON database
 
-- `npm run db:seed` : importe les tables/data de `frontEnd/data/all_data_mysql.sql`.
-- `npm run db:init` : cree/migre les tables backend (`users`, `user_region_inventory`, `user_app_state`, `user_audit_log`).
+- Fichier principal: `backEnd/data/database.json`
+- `npm run db:init` : cree le fichier JSON s'il n'existe pas.
+- `npm run db:seed` : resynchronise les donnees catalogue depuis `frontEnd/data/*` en conservant les donnees runtime utilisateur.
 - `npm run db:setup` : seed + init.
-- Conversion MySQL -> PostgreSQL (Supabase):
-  - `npm run db:convert:pg -- --input backEnd/sql/core_tables.sql --output backEnd/sql/core_tables.postgres.sql`
-  - Ajouter `--with-data` si tu veux conserver les `INSERT`.
+
+Le backend genere automatiquement `backEnd/data/database.json` au demarrage si le fichier est absent.
 
 ## Run
 
@@ -59,7 +57,7 @@ API base URL: `http://localhost:3000/api`
 
 ## Notes
 
-- Si `health` renvoie des tables manquantes, execute `npm run db:setup`.
+- Si `health` renvoie un etat degrade, execute `npm run db:setup`.
 - Le craft suit la regle: `100 nova_shards = 1 nova_crystal`.
 - L'inventaire est par utilisateur.
 - `ALLOW_GUEST_AUTH=true` permet au front de se connecter sans login (utilisateur `guest@lor.local` auto-cree).
@@ -67,4 +65,4 @@ API base URL: `http://localhost:3000/api`
   - `termsAccepted: true`
   - `privacyAccepted: true`
   - `marketingConsent: boolean` (optionnel)
-- Les evenements sensibles auth/consentement sont traces dans `user_audit_log`.
+- Les evenements sensibles auth/consentement sont traces dans `userAuditLog` du fichier JSON.

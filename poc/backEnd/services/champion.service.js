@@ -1,143 +1,17 @@
-const { query, getConnection } = require('../config/database');
+const { readDatabase, mutateDatabase } = require('../config/database');
 const HttpError = require('../utils/HttpError');
 const { toSafeInt } = require('../utils/validation');
 
-function mapChampionRow(row) {
-  return {
-    championId: row.championId,
-    championName: row.championName,
-    costId: row.costId,
-    cost: row.cost,
-    poc: Boolean(row.poc),
-    championIcon: row.championIcon || '',
-    starsId: row.starsId,
-    stars: row.stars,
-    lorExclusive: Boolean(row.lorExclusive),
-    constellationNumberId: row.constellationNumberId,
-    constellationNumber: row.constellationNumber,
-    levelId: row.levelId,
-    level: row.level,
-    levelNeeded: row.levelNeeded,
-    regionId: row.regionId,
-    regionName: row.regionName,
-    relics: []
-  };
-}
-
-async function getRelicSlotsForChampionIds(championIds) {
-  if (!championIds.length) {
-    return new Map();
-  }
-
-  const placeholders = championIds.map(() => '?').join(', ');
-  const rows = await query(
-    `
-    SELECT champion_id AS championId, slot_index AS slotIndex, relic_code AS relicCode
-    FROM champion_all_relics
-    WHERE champion_id IN (${placeholders})
-    ORDER BY champion_id ASC, slot_index ASC
-    `,
-    championIds
-  );
-
-  const map = new Map();
-  for (const row of rows) {
-    if (!map.has(row.championId)) {
-      map.set(row.championId, [null, null, null]);
-    }
-
-    const slots = map.get(row.championId);
-    const idx = Math.max(0, Math.min(2, (row.slotIndex || 1) - 1));
-    slots[idx] = row.relicCode || null;
-  }
-
-  return map;
-}
-
-async function listChampions(filters = {}) {
-  const where = [];
-  const params = [];
-
-  if (typeof filters.poc === 'boolean') {
-    where.push('c.poc = ?');
-    params.push(filters.poc ? 1 : 0);
-  }
-
-  if (Number.isFinite(filters.regionId)) {
-    where.push('c.region_id = ?');
-    params.push(filters.regionId);
-  }
-
-  if (filters.search) {
-    where.push('c.champion_name LIKE ?');
-    params.push(`%${filters.search}%`);
-  }
-
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
-  const rows = await query(
-    `
-    SELECT
-      c.champion_id AS championId,
-      c.champion_name AS championName,
-      c.cost_id AS costId,
-      co.cost_value AS cost,
-      c.poc AS poc,
-      c.champion_icon AS championIcon,
-      c.stars_id AS starsId,
-      s.stars_value AS stars,
-      c.lor_exclusive AS lorExclusive,
-      c.constellation_number_id AS constellationNumberId,
-      cn.constellation_value AS constellationNumber,
-      c.level_id AS levelId,
-      l.actual_level AS level,
-      l.level_needed AS levelNeeded,
-      c.region_id AS regionId,
-      r.region_name AS regionName
-    FROM champion c
-    LEFT JOIN cost co ON co.cost_id = c.cost_id
-    LEFT JOIN stars s ON s.stars_id = c.stars_id
-    LEFT JOIN constellation_number cn ON cn.constellation_id = c.constellation_number_id
-    LEFT JOIN level l ON l.level_id = c.level_id
-    LEFT JOIN region r ON r.region_id = c.region_id
-    ${whereSql}
-    ORDER BY c.champion_id ASC
-    `,
-    params
-  );
-
-  const champions = rows.map(mapChampionRow);
-  const championIds = champions.map((champion) => champion.championId);
-
-  const relicSlots = await getRelicSlotsForChampionIds(championIds);
-  for (const champion of champions) {
-    champion.relics = relicSlots.get(champion.championId) || [null, null, null];
-  }
-
-  return champions;
-}
-
-async function getChampionById(championId) {
-  const champs = await listChampions({});
-  return champs.find((champion) => champion.championId === championId) || null;
-}
-
-async function getNextChampionId(connection) {
-  const [rows] = await connection.execute(
-    'SELECT COALESCE(MAX(champion_id), 0) + 1 AS nextId FROM champion'
-  );
-  return rows[0].nextId;
-}
-
 function sanitizeRelicsInput(relics) {
   const next = [null, null, null];
+
   if (!Array.isArray(relics)) {
     return next;
   }
 
-  for (let i = 0; i < 3; i += 1) {
-    const value = relics[i];
-    next[i] = value === 0 || value === '0' || value === '' ? null : value || null;
+  for (let index = 0; index < 3; index += 1) {
+    const value = relics[index];
+    next[index] = value === 0 || value === '0' || value === '' ? null : value || null;
   }
 
   return next;
@@ -153,34 +27,36 @@ function normalizeChampionInput(payload, partial = false) {
   const base = {
     championName,
     costId: toSafeInt(payload.costId, 0),
-    poc: payload.poc ? 1 : 0,
+    poc: Boolean(payload.poc),
     championIcon: payload.championIcon || '',
     starsId: toSafeInt(payload.starsId, 0),
-    lorExclusive: payload.lorExclusive ? 1 : 0,
+    lorExclusive: Boolean(payload.lorExclusive),
     constellationNumberId: toSafeInt(payload.constellationNumberId, 1),
     levelId: toSafeInt(payload.levelId, 1),
     regionId: toSafeInt(payload.regionId, 13)
   };
 
-  if (!partial) {
-    if (!base.championName) {
-      throw new HttpError(400, 'Field `championName` is required');
-    }
+  if (!partial && !base.championName) {
+    throw new HttpError(400, 'Field `championName` is required');
   }
 
   if (partial) {
     const cleaned = {};
+
     for (const [key, value] of Object.entries(base)) {
       if (payload[key] !== undefined) {
         cleaned[key] = value;
       }
     }
+
     if (Object.prototype.hasOwnProperty.call(cleaned, 'championName') && !cleaned.championName) {
       throw new HttpError(400, 'Field `championName` cannot be empty');
     }
+
     if (payload.relics !== undefined) {
       cleaned.relics = sanitizeRelicsInput(payload.relics);
     }
+
     return cleaned;
   }
 
@@ -190,183 +66,169 @@ function normalizeChampionInput(payload, partial = false) {
   };
 }
 
+function getCatalogLookups(database) {
+  const catalog = database.catalog || {};
+
+  return {
+    costs: new Map((catalog.costs || []).map((entry) => [entry.costId, entry.costValue])),
+    stars: new Map((catalog.stars || []).map((entry) => [entry.starsId, entry.starsValue])),
+    constellations: new Map(
+      (catalog.constellations || []).map((entry) => [entry.constellationId, entry.constellationValue])
+    ),
+    levels: new Map((catalog.levels || []).map((entry) => [entry.levelId, entry])),
+    regions: new Map((catalog.regions || []).map((entry) => [entry.regionId, entry]))
+  };
+}
+
+function mapChampionRecord(record, lookups) {
+  const level = lookups.levels.get(record.levelId) || {};
+  const region = lookups.regions.get(record.regionId) || {};
+
+  return {
+    championId: record.championId,
+    championName: record.championName,
+    costId: record.costId,
+    cost: lookups.costs.has(record.costId) ? lookups.costs.get(record.costId) : '',
+    poc: Boolean(record.poc),
+    championIcon: record.championIcon || '',
+    starsId: record.starsId,
+    stars: lookups.stars.has(record.starsId) ? lookups.stars.get(record.starsId) : '',
+    lorExclusive: Boolean(record.lorExclusive),
+    constellationNumberId: record.constellationNumberId,
+    constellationNumber: lookups.constellations.has(record.constellationNumberId)
+      ? lookups.constellations.get(record.constellationNumberId)
+      : '',
+    levelId: record.levelId,
+    level: level.actualLevel !== undefined ? level.actualLevel : '',
+    levelNeeded: level.levelNeeded !== undefined ? level.levelNeeded : '',
+    regionId: record.regionId,
+    regionName: region.regionName || '',
+    relics: sanitizeRelicsInput(record.relics)
+  };
+}
+
+function getChampionCollection(database) {
+  if (!database.catalog) {
+    database.catalog = {};
+  }
+
+  if (!Array.isArray(database.catalog.champions)) {
+    database.catalog.champions = [];
+  }
+
+  return database.catalog.champions;
+}
+
+function getNextChampionId(champions) {
+  return champions.reduce((maxId, champion) => Math.max(maxId, champion.championId || 0), 0) + 1;
+}
+
+async function listChampions(filters = {}) {
+  const database = await readDatabase();
+  const champions = getChampionCollection(database);
+  const lookups = getCatalogLookups(database);
+  const search = String(filters.search || '').trim().toLowerCase();
+
+  return champions
+    .filter((champion) => {
+      if (typeof filters.poc === 'boolean' && Boolean(champion.poc) !== filters.poc) {
+        return false;
+      }
+
+      if (Number.isFinite(filters.regionId) && champion.regionId !== filters.regionId) {
+        return false;
+      }
+
+      if (search && !String(champion.championName || '').toLowerCase().includes(search)) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((left, right) => left.championId - right.championId)
+    .map((champion) => mapChampionRecord(champion, lookups));
+}
+
+async function getChampionById(championId) {
+  const database = await readDatabase();
+  const champions = getChampionCollection(database);
+  const champion = champions.find((entry) => entry.championId === championId);
+
+  if (!champion) {
+    return null;
+  }
+
+  return mapChampionRecord(champion, getCatalogLookups(database));
+}
+
 async function createChampion(payload) {
   const cleaned = normalizeChampionInput(payload, false);
-  const connection = await getConnection();
 
-  try {
-    await connection.beginTransaction();
+  return mutateDatabase((database) => {
+    const champions = getChampionCollection(database);
+    const nextChampionId = getNextChampionId(champions);
 
-    const nextChampionId = await getNextChampionId(connection);
+    champions.push({
+      championId: nextChampionId,
+      championName: cleaned.championName,
+      costId: cleaned.costId,
+      poc: cleaned.poc,
+      championIcon: cleaned.championIcon,
+      starsId: cleaned.starsId,
+      lorExclusive: cleaned.lorExclusive,
+      constellationNumberId: cleaned.constellationNumberId,
+      levelId: cleaned.levelId,
+      regionId: cleaned.regionId,
+      relics: cleaned.relics
+    });
 
-    await connection.execute(
-      `
-      INSERT INTO champion (
-        champion_id,
-        champion_name,
-        cost_id,
-        poc,
-        champion_icon,
-        stars_id,
-        lor_exclusive,
-        constellation_number_id,
-        level_id,
-        region_id
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [
-        nextChampionId,
-        cleaned.championName,
-        cleaned.costId,
-        cleaned.poc,
-        cleaned.championIcon,
-        cleaned.starsId,
-        cleaned.lorExclusive,
-        cleaned.constellationNumberId,
-        cleaned.levelId,
-        cleaned.regionId
-      ]
-    );
-
-    for (let i = 0; i < 3; i += 1) {
-      await connection.execute(
-        'INSERT INTO champion_all_relics (champion_id, slot_index, relic_code) VALUES (?, ?, ?)',
-        [nextChampionId, i + 1, cleaned.relics[i]]
-      );
-    }
-
-    await connection.commit();
     return nextChampionId;
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+  });
 }
 
 async function updateChampion(championId, payload) {
   const cleaned = normalizeChampionInput(payload, true);
-  const connection = await getConnection();
 
-  try {
-    await connection.beginTransaction();
+  await mutateDatabase((database) => {
+    const champions = getChampionCollection(database);
+    const champion = champions.find((entry) => entry.championId === championId);
 
-    const [existingRows] = await connection.execute(
-      'SELECT champion_id FROM champion WHERE champion_id = ? LIMIT 1',
-      [championId]
-    );
-
-    if (!existingRows.length) {
+    if (!champion) {
       throw new HttpError(404, 'Champion not found');
     }
 
-    const fields = [];
-    const params = [];
-
-    const mapping = {
-      championName: 'champion_name',
-      costId: 'cost_id',
-      poc: 'poc',
-      championIcon: 'champion_icon',
-      starsId: 'stars_id',
-      lorExclusive: 'lor_exclusive',
-      constellationNumberId: 'constellation_number_id',
-      levelId: 'level_id',
-      regionId: 'region_id'
-    };
-
-    for (const [inputKey, dbColumn] of Object.entries(mapping)) {
-      if (cleaned[inputKey] !== undefined) {
-        fields.push(`${dbColumn} = ?`);
-        params.push(cleaned[inputKey]);
-      }
+    for (const [key, value] of Object.entries(cleaned)) {
+      champion[key] = key === 'relics' ? sanitizeRelicsInput(value) : value;
     }
-
-    if (fields.length) {
-      params.push(championId);
-      await connection.execute(
-        `UPDATE champion SET ${fields.join(', ')} WHERE champion_id = ?`,
-        params
-      );
-    }
-
-    if (cleaned.relics) {
-      await connection.execute(
-        'DELETE FROM champion_all_relics WHERE champion_id = ?',
-        [championId]
-      );
-      for (let i = 0; i < 3; i += 1) {
-        await connection.execute(
-          'INSERT INTO champion_all_relics (champion_id, slot_index, relic_code) VALUES (?, ?, ?)',
-          [championId, i + 1, cleaned.relics[i]]
-        );
-      }
-    }
-
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+  });
 }
 
 async function deleteChampion(championId) {
-  const connection = await getConnection();
+  await mutateDatabase((database) => {
+    const champions = getChampionCollection(database);
+    const index = champions.findIndex((entry) => entry.championId === championId);
 
-  try {
-    await connection.beginTransaction();
-    await connection.execute('DELETE FROM champion_all_relics WHERE champion_id = ?', [championId]);
-    const [result] = await connection.execute('DELETE FROM champion WHERE champion_id = ?', [championId]);
-
-    if (!result.affectedRows) {
+    if (index === -1) {
       throw new HttpError(404, 'Champion not found');
     }
 
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+    champions.splice(index, 1);
+  });
 }
 
 async function updateChampionRelics(championId, relics) {
   const cleanedRelics = sanitizeRelicsInput(relics);
-  const connection = await getConnection();
 
-  try {
-    await connection.beginTransaction();
+  await mutateDatabase((database) => {
+    const champions = getChampionCollection(database);
+    const champion = champions.find((entry) => entry.championId === championId);
 
-    const [existingRows] = await connection.execute(
-      'SELECT champion_id FROM champion WHERE champion_id = ? LIMIT 1',
-      [championId]
-    );
-
-    if (!existingRows.length) {
+    if (!champion) {
       throw new HttpError(404, 'Champion not found');
     }
 
-    await connection.execute('DELETE FROM champion_all_relics WHERE champion_id = ?', [championId]);
-
-    for (let i = 0; i < 3; i += 1) {
-      await connection.execute(
-        'INSERT INTO champion_all_relics (champion_id, slot_index, relic_code) VALUES (?, ?, ?)',
-        [championId, i + 1, cleanedRelics[i]]
-      );
-    }
-
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
+    champion.relics = cleanedRelics;
+  });
 
   return cleanedRelics;
 }

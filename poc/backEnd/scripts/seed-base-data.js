@@ -1,30 +1,11 @@
-const fs = require('fs/promises');
-const path = require('path');
-const mysql = require('mysql2/promise');
-const env = require('../config/env');
-
-const SQL_FILE = path.resolve(__dirname, '../../frontEnd/data/all_data_mysql.sql');
+const { DATABASE_FILE, seedDatabase } = require('../config/database');
 
 async function main() {
-  const sql = await fs.readFile(SQL_FILE, 'utf8');
+  await seedDatabase({ preserveRuntimeData: true });
 
-  const connection = await mysql.createConnection({
-    host: env.db.host,
-    port: env.db.port,
-    user: env.db.user,
-    password: env.db.password,
-    database: env.db.database,
-    charset: 'utf8mb4',
-    multipleStatements: true
-  });
-
-  try {
-    console.log('[db:seed] Importing SQL from', SQL_FILE);
-    await connection.query(sql);
-    console.log('[db:seed] Done');
-  } finally {
-    await connection.end();
-  }
+  console.log('[db:seed] JSON database synced from front-end data');
+  console.log('[db:seed] File:', DATABASE_FILE);
+  console.log('[db:seed] Runtime collections preserved: users, inventories, app state, audit log');
 }
 
 main().catch((error) => {
