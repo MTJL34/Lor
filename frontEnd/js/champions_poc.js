@@ -138,8 +138,6 @@ const filterPoc = document.getElementById("filterPoc");
 const filterRegion = document.getElementById("filterRegion");
 const filterCost = document.getElementById("filterCost");
 
-const STORAGE_KEY = "poc_champion_overrides";
-
 const starsById = new Map(Stars.map(star => [star.Stars_ID, star]));
 const constellationById = new Map(
   Constellation_Number.map(cn => [cn.Constellation_ID, cn])
@@ -161,24 +159,13 @@ const CHAMPION_FIELD_ORDER = [
   "AllRelics"
 ];
 
-function loadOverrides() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch (err) {
-    console.warn("Failed to load PoC overrides:", err);
-    return {};
-  }
+// Keep PoC overrides in memory only. The page currently resets them on every load
+// anyway, and avoiding localStorage prevents iframe/storage security errors.
+function saveOverrides() {
+  return true;
 }
 
-function saveOverrides(overrides) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-}
-
-// Always reset local overrides on page load.
-localStorage.removeItem(STORAGE_KEY);
-
-const overrides = loadOverrides();
+const overrides = {};
 const editingRows = new Set();
 const filters = {
   poc: "all",

@@ -246,20 +246,20 @@ function Infer-SqlType {
 }
 
 $sources = @(
-    @{ File = 'poc/data/Constellation_Number.js'; Export = 'Constellation_Number' },
-    @{ File = 'poc/data/Cost.js'; Export = 'Cost' },
-    @{ File = 'poc/data/Level.js'; Export = 'Level' },
-    @{ File = 'poc/data/Region.js'; Export = 'Region' },
-    @{ File = 'poc/data/Stars.js'; Export = 'Stars' },
-    @{ File = 'poc/data/Relics_Common.js'; Export = 'RelicsCommon' },
-    @{ File = 'poc/data/Relics_Rare.js'; Export = 'RelicsRare' },
-    @{ File = 'poc/data/Relics_Epic.js'; Export = 'RelicsEpic' },
-    @{ File = 'poc/data/Champion.js'; Export = 'Champion' },
-    @{ File = 'poc/data/PoC_Champions.js'; Export = 'PoC_Champion' }
+    @{ File = 'frontEnd/data/Constellation_Number.js'; Export = 'Constellation_Number' },
+    @{ File = 'frontEnd/data/Cost.js'; Export = 'Cost' },
+    @{ File = 'frontEnd/data/Level.js'; Export = 'Level' },
+    @{ File = 'frontEnd/data/Region.js'; Export = 'Region' },
+    @{ File = 'frontEnd/data/Stars.js'; Export = 'Stars' },
+    @{ File = 'frontEnd/data/Relics_Common.js'; Export = 'RelicsCommon' },
+    @{ File = 'frontEnd/data/Relics_Rare.js'; Export = 'RelicsRare' },
+    @{ File = 'frontEnd/data/Relics_Epic.js'; Export = 'RelicsEpic' },
+    @{ File = 'frontEnd/data/Champion.js'; Export = 'Champion' },
+    @{ File = 'frontEnd/data/PoC_Champions.js'; Export = 'PoC_Champion' }
 )
 
 $output = New-Object System.Collections.Generic.List[string]
-$output.Add('-- Auto-generated SQL dump from poc/data JS sources')
+$output.Add('-- Auto-generated SQL dump from frontEnd/data JS sources')
 $output.Add('BEGIN TRANSACTION;')
 $output.Add('')
 
@@ -352,6 +352,6 @@ $output.Add('')
 
 $output.Add('COMMIT;')
 
-$outPath = 'poc/data/data_dump.sql'
+$outPath = 'frontEnd/data/data_dump.sql'
 Set-Content -Path $outPath -Value $output -Encoding UTF8
 Write-Output "SQL generated: $outPath"

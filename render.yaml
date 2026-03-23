@@ -2,7 +2,6 @@ services:
   - type: web
     name: lor-poc
     runtime: node
-    rootDir: poc
     plan: starter
     buildCommand: npm install
     startCommand: npm start

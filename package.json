@@ -1,13 +1,28 @@
 {
-  "name": "lor-root",
-  "private": true,
+  "name": "poc",
   "version": "1.0.0",
-  "workspaces": [
-    "poc"
-  ],
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "yarn workspace poc dev",
-    "postinstall": "echo \"Workspace install complete\""
+    "start": "node backEnd/server.js",
+    "dev": "nodemon backEnd/server.js",
+    "db:init": "node backEnd/scripts/init-core-tables.js",
+    "db:seed": "node backEnd/scripts/seed-base-data.js",
+    "db:setup": "node backEnd/scripts/setup-db.js",
+    "db:convert:pg": "node backEnd/scripts/mysql-to-postgres.js",
+    "test": "echo \"No tests configured\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.19.0",
+    "nodemon": "^3.1.14"
   }
 }

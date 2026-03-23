@@ -1,1 +1,1 @@
-require('./poc/backEnd/server');
+require('./backEnd/server');

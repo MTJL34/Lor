@@ -9,7 +9,7 @@ Backend Node.js/Express avec persistance JSON.
 
 ## Configuration
 
-1. Copier `.env.example` vers `.env` (dans `poc/` ou a la racine parent).
+1. Copier `.env.example` vers `.env` a la racine du projet.
 2. Ajouter `JWT_SECRET`.
 3. (Conformite) Configurer si besoin:
    - `TERMS_VERSION` (defaut: `2026-03`)

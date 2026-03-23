@@ -10,7 +10,7 @@ function Get-BodyWithoutTransaction {
     return $text.Trim()
 }
 
-$basePath = 'poc/data'
+$basePath = 'frontEnd/data'
 $dumpPath = Join-Path $basePath 'data_dump.sql'
 $gemPath = Join-Path $basePath 'gemstone_tiers.sql'
 $sitePath = Join-Path $basePath 'site_data.json'

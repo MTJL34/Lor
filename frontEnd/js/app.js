@@ -106,21 +106,28 @@ async function initializeState() {
 }
 
 function route() {
-    const hash = window.location.hash || '#/dashboard';
+    const hash = window.location.hash || '#/poc-champions';
     const [path, queryString] = hash.substring(2).split('?');
     const parts = path.split('/');
     
     console.log('Routing to:', path, 'parts:', parts);
     
     let page = null;
-    let activeNav = 'dashboard';
+    let activeNav = 'poc-champions';
 
     if (globalState.baseData) {
         applyComputedRegionTotals(globalState.baseData);
     }
     
     try {
-        if (path === 'dashboard' || path === '') {
+        if (path === '' || path === 'poc-champions') {
+            page = PoCEmbedPage({
+                title: 'PoC Champions',
+                subtitle: 'Gestion des champions PoC dans la meme application',
+                src: 'pages/poc_champions_embed.html'
+            });
+            activeNav = 'poc-champions';
+        } else if (path === 'dashboard') {
             page = DashboardPage(globalState.appState, globalState.baseData);
             activeNav = 'dashboard';
         } else if (path === 'regions') {
@@ -176,13 +183,6 @@ function route() {
         } else if (path === 'help') {
             page = HelpRulesPage();
             activeNav = 'help';
-        } else if (path === 'poc-champions') {
-            page = PoCEmbedPage({
-                title: 'PoC Champions',
-                subtitle: 'Gestion des champions PoC dans la meme application',
-                src: 'pages/poc_champions_embed.html'
-            });
-            activeNav = 'poc-champions';
         } else if (path === 'poc-relics') {
             page = PoCEmbedPage({
                 title: 'PoC Reliques',

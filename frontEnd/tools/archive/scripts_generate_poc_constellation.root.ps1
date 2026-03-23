@@ -122,12 +122,12 @@ function To-SqlValue {
     return [string]$Value
 }
 
-$constellations = @(Get-ExportArrayObject -FilePath 'poc/data/Constellation_Number.js' -ExportName 'Constellation_Number')
+$constellations = @(Get-ExportArrayObject -FilePath 'frontEnd/data/Constellation_Number.js' -ExportName 'Constellation_Number')
 if ($constellations.Count -eq 1 -and $constellations[0] -is [System.Array]) {
     $constellations = @($constellations[0])
 }
 
-$champions = @(Get-ExportArrayObject -FilePath 'poc/data/Champion.js' -ExportName 'Champion')
+$champions = @(Get-ExportArrayObject -FilePath 'frontEnd/data/Champion.js' -ExportName 'Champion')
 if ($champions.Count -eq 1 -and $champions[0] -is [System.Array]) {
     $champions = @($champions[0])
 }
@@ -192,5 +192,5 @@ $out.Add('')
 
 $out.Add('COMMIT;')
 
-Set-Content -Path 'poc/data/poc_constellation.sql' -Value $out -Encoding UTF8
-Write-Output 'SQL generated: poc/data/poc_constellation.sql'
+Set-Content -Path 'frontEnd/data/poc_constellation.sql' -Value $out -Encoding UTF8
+Write-Output 'SQL generated: frontEnd/data/poc_constellation.sql'

@@ -259,7 +259,7 @@ $sources = @(
 )
 
 $output = New-Object System.Collections.Generic.List[string]
-$output.Add('-- Auto-generated SQL dump from poc/data JS sources')
+$output.Add('-- Auto-generated SQL dump from frontEnd/data JS sources')
 $output.Add('BEGIN TRANSACTION;')
 $output.Add('')
 
