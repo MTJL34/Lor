@@ -1,0 +1,13 @@
+{
+  "name": "lor-root",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "poc"
+  ],
+  "scripts": {
+    "start": "node index.js",
+    "dev": "yarn workspace poc dev",
+    "postinstall": "echo \"Workspace install complete\""
+  }
+}
