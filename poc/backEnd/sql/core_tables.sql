@@ -3,11 +3,22 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(100) NOT NULL,
   email VARCHAR(191) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
+  terms_version_accepted VARCHAR(32) NULL,
+  terms_accepted_at DATETIME NULL,
+  privacy_version_accepted VARCHAR(32) NULL,
+  privacy_accepted_at DATETIME NULL,
+  marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
+  marketing_consent_updated_at DATETIME NULL,
+  data_retention_until DATETIME NULL,
+  last_login_at DATETIME NULL,
+  is_guest TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY users_username_unique (username),
-  UNIQUE KEY users_email_unique (email)
+  UNIQUE KEY users_email_unique (email),
+  KEY users_data_retention_idx (data_retention_until),
+  KEY users_is_guest_idx (is_guest)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS user_region_inventory (
@@ -39,4 +50,18 @@ CREATE TABLE IF NOT EXISTS user_app_state (
   CONSTRAINT user_app_state_user_fk FOREIGN KEY (user_id)
     REFERENCES users (id)
     ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS user_audit_log (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id INT NULL,
+  event_type VARCHAR(80) NOT NULL,
+  event_payload JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY user_audit_log_user_idx (user_id),
+  KEY user_audit_log_event_idx (event_type),
+  CONSTRAINT user_audit_log_user_fk FOREIGN KEY (user_id)
+    REFERENCES users (id)
+    ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

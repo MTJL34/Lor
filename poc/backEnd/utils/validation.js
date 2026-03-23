@@ -23,6 +23,14 @@ function parseBooleanQuery(value) {
   return null;
 }
 
+function requireBoolean(value, fieldName) {
+  if (typeof value !== 'boolean') {
+    throw new HttpError(400, `Field \`${fieldName}\` must be a boolean`);
+  }
+
+  return value;
+}
+
 function requireString(value, fieldName, { min = 1, max = 255 } = {}) {
   if (typeof value !== 'string') {
     throw new HttpError(400, `Field \`${fieldName}\` must be a string`);
@@ -45,5 +53,6 @@ module.exports = {
   toSafeInt,
   toSafeNonNegativeInt,
   parseBooleanQuery,
+  requireBoolean,
   requireString
 };

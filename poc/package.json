@@ -9,6 +9,7 @@
     "db:init": "node backEnd/scripts/init-core-tables.js",
     "db:seed": "node backEnd/scripts/seed-base-data.js",
     "db:setup": "node backEnd/scripts/setup-db.js",
+    "db:convert:pg": "node backEnd/scripts/mysql-to-postgres.js",
     "test": "echo \"No tests configured\""
   },
   "keywords": [],

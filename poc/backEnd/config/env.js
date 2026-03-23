@@ -46,6 +46,11 @@ const env = {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     bcryptRounds: parseIntOrDefault(process.env.BCRYPT_ROUNDS, 10),
     allowGuestAuth: parseBool(process.env.ALLOW_GUEST_AUTH, true)
+  },
+  legal: {
+    termsVersion: process.env.TERMS_VERSION || '2026-03',
+    privacyPolicyVersion: process.env.PRIVACY_POLICY_VERSION || '2026-03',
+    dataRetentionDays: parseIntOrDefault(process.env.DATA_RETENTION_DAYS, 365)
   }
 };
 
