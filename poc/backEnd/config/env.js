@@ -34,6 +34,9 @@ const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseIntOrDefault(process.env.PORT, 3000),
   corsOrigin: process.env.CORS_ORIGIN || '*',
+  storage: {
+    jsonDbPath: process.env.JSON_DB_PATH || ''
+  },
   db: {
     host: process.env.DB_HOST || 'localhost',
     port: parseIntOrDefault(process.env.DB_PORT, 3306),

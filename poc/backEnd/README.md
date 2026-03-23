@@ -22,8 +22,20 @@ Backend Node.js/Express avec persistance JSON.
 - `npm run db:init` : cree le fichier JSON s'il n'existe pas.
 - `npm run db:seed` : resynchronise les donnees catalogue depuis `frontEnd/data/*` en conservant les donnees runtime utilisateur.
 - `npm run db:setup` : seed + init.
+- `JSON_DB_PATH` permet de deplacer le fichier JSON vers un disque persistant (utile sur Render).
 
 Le backend genere automatiquement `backEnd/data/database.json` au demarrage si le fichier est absent.
+
+## Render
+
+Pour Render, utilise un disque persistant et pointe le backend dessus:
+
+- Monter le disque sur `/var/data`
+- Definir `JSON_DB_PATH=/var/data/database.json`
+- Utiliser un `Web Service` Node
+- Health check: `/api/health`
+
+Le fichier [render.yaml](/Users/mtjl/Documents/Lor/render.yaml) configure deja ce cas.
 
 ## Run
 

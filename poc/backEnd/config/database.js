@@ -1,9 +1,24 @@
 const fs = require('fs/promises');
 const path = require('path');
 const vm = require('vm');
+const env = require('./env');
 
-const DATABASE_FILE = path.resolve(__dirname, '../data/database.json');
 const FRONTEND_DATA_DIR = path.resolve(__dirname, '../../frontEnd/data');
+const DEFAULT_DATABASE_FILE = path.resolve(__dirname, '../data/database.json');
+
+function resolveDatabaseFile() {
+  const configuredPath = String(env.storage && env.storage.jsonDbPath ? env.storage.jsonDbPath : '').trim();
+
+  if (!configuredPath) {
+    return DEFAULT_DATABASE_FILE;
+  }
+
+  return path.isAbsolute(configuredPath)
+    ? configuredPath
+    : path.resolve(process.cwd(), configuredPath);
+}
+
+const DATABASE_FILE = resolveDatabaseFile();
 
 const REQUIRED_BASE_TABLES = [
   'catalog.regions',

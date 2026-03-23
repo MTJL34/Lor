@@ -24,7 +24,7 @@ async function main() {
   await runNodeScript(seedScript);
   await runNodeScript(initScript);
 
-  console.log('[db:setup] Database setup complete');
+  console.log('[db:setup] JSON database setup complete');
 }
 
 main().catch((error) => {
