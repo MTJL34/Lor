@@ -146,6 +146,64 @@ h1, h2 {
     padding: 4px 6px;
 }
 
+.rarity-switch {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.rarity-switch.compact {
+    gap: 6px;
+}
+
+.rarity-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-medium);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.rarity-filter-btn:hover {
+    background: #3a465c;
+    transform: translateY(-1px);
+}
+
+.rarity-filter-btn.is-active {
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 1px rgba(247, 250, 252, 0.15) inset;
+}
+
+.rarity-chip-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    display: inline-block;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.rarity-chip-dot.all {
+    background: linear-gradient(135deg, #48bb78 0%, #3b82f6 50%, #a855f7 100%);
+}
+
+.rarity-chip-dot.common {
+    background: #48bb78;
+}
+
+.rarity-chip-dot.rare {
+    background: #3b82f6;
+}
+
+.rarity-chip-dot.epic {
+    background: #a855f7;
+}
+
 /* ===== TABLE ===== */
 table {
     width: 100%;
@@ -230,6 +288,166 @@ tr:nth-child(even) {
     margin: 0 auto;
 }
 
+.relics-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 12px 0 18px;
+}
+
+.relics-toolbar-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.relics-toolbar-actions button,
+.relic-form-actions button {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+}
+
+.relics-toolbar-actions button:hover,
+.relic-form-actions button:hover {
+    background: #5a6779;
+}
+
+.relic-toolbar-count {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.relic-add-panel {
+    background: linear-gradient(180deg, rgba(74, 85, 104, 0.35), rgba(45, 55, 72, 0.8));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 22px;
+}
+
+.relic-add-panel-header h3 {
+    margin: 0 0 6px;
+}
+
+.relic-add-panel-header p {
+    margin: 0 0 14px;
+    color: var(--text-secondary);
+}
+
+.relic-add-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 18px;
+}
+
+.relic-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+.relic-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.relic-form-field-wide {
+    grid-column: 1 / -1;
+}
+
+.relic-form-field input,
+.relic-form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(26, 32, 44, 0.95);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+}
+
+.relic-form-field textarea {
+    resize: vertical;
+}
+
+.relic-form-hint {
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.relic-form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.relic-form-actions .secondary {
+    background: transparent;
+}
+
+.relic-preview-card {
+    background: rgba(26, 32, 44, 0.92);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.relic-preview-card.common {
+    border-color: #48bb78;
+}
+
+.relic-preview-card.rare {
+    border-color: #3b82f6;
+}
+
+.relic-preview-card.epic {
+    border-color: #a855f7;
+}
+
+.relic-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.relic-preview-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.relic-preview-body img {
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--bg-medium);
+}
+
+.relic-preview-text h4 {
+    margin: 0 0 8px;
+}
+
+.relic-preview-text p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
 .relic-table img {
     display: block;
     margin: auto;
@@ -245,6 +463,56 @@ tr:nth-child(even) {
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 0.9rem;
+}
+
+.relic-section {
+    margin-bottom: 22px;
+}
+
+.relic-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.relic-count-badge,
+.relic-source-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+}
+
+.relic-count-badge {
+    color: var(--text-secondary);
+    background: rgba(26, 32, 44, 0.85);
+}
+
+.relic-source-badge.base {
+    background: rgba(74, 85, 104, 0.45);
+    color: var(--text-secondary);
+}
+
+.relic-source-badge.custom {
+    background: rgba(102, 126, 234, 0.2);
+    color: #c4d4ff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.relic-description-cell {
+    text-align: left;
+    line-height: 1.45;
+}
+
+.relic-empty-state {
+    color: var(--text-secondary);
+    padding: 18px;
 }
 
 .relic-section.common h3 { color: #9e9e9e; }
@@ -314,6 +582,12 @@ tr:nth-child(even) {
     display: block;
 }
 
+.relic-menu-toolbar {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(74, 85, 104, 0.45);
+}
+
 .relic-menu-list {
     display: grid;
     grid-template-columns: 1fr;
@@ -355,6 +629,13 @@ tr:nth-child(even) {
 
 .relic-option-empty {
     grid-template-columns: 1fr;
+}
+
+.relic-menu-empty {
+    padding: 10px 6px 4px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-align: center;
 }
 
 /* SLOT VIDE */
@@ -447,6 +728,22 @@ tfoot th:empty::after {
 
     .content {
         margin-left: 200px;
+    }
+
+    .relic-add-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .relic-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .relic-form-actions {
+        justify-content: stretch;
+    }
+
+    .relic-form-actions button {
+        flex: 1;
     }
 }
 

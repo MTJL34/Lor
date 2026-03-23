@@ -5,6 +5,7 @@ import { AllRelics } from "../data/Relics.js";
 import { Constellation_Number } from "../data/Constellation_Number.js";
 import { Cost } from "../data/Cost.js";
 import { Stars } from "../data/Stars.js";
+import { getCustomRelics } from "./pocSharedState.js";
 
 const toNum = (v) => Number(v) || 0;
 const getLevelClass = (levelValue) => {
@@ -14,6 +15,12 @@ const getLevelClass = (levelValue) => {
   if (level < 50) return "level-mid";
   return "level-high";
 };
+const RELIC_RARITY_FILTERS = [
+  { value: "all", label: "Toutes", tone: "all" },
+  { value: "common", label: "Common", tone: "common" },
+  { value: "rare", label: "Rare", tone: "rare" },
+  { value: "epic", label: "Epic", tone: "epic" }
+];
 
 let html = ``;
 
@@ -143,7 +150,6 @@ const constellationById = new Map(
   Constellation_Number.map(cn => [cn.Constellation_ID, cn])
 );
 const levelById = new Map(Level.map(level => [level.Level_ID, level]));
-const relicOptions = AllRelics.filter(relic => relic.Relic_ID && relic.Relic_ID !== 0);
 const customChampions = [];
 const CHAMPION_FIELD_ORDER = [
   "Champion_ID",
@@ -167,11 +173,25 @@ function saveOverrides() {
 
 const overrides = {};
 const editingRows = new Set();
+let activeRelicRarityFilter = "all";
 const filters = {
   poc: "all",
   region: "all",
   cost: "all"
 };
+
+function normalizeRelicRarity(rarity) {
+  return String(rarity || "").trim().toLowerCase();
+}
+
+function getSelectableRelics() {
+  return [...AllRelics, ...getCustomRelics()]
+    .filter(relic => relic && relic.Relic_ID && relic.Relic_ID !== 0);
+}
+
+function findRelicById(relicId) {
+  return getSelectableRelics().find(relic => relic.Relic_ID === relicId) || null;
+}
 
 function compareChampionNames(a, b) {
   const nameA = String(a?.Champion_Name || "");
@@ -208,7 +228,7 @@ function populateRelicSelect(selectEl) {
   if (!selectEl) return;
   const options = [
     '<option value="0">0: Aucune</option>',
-    ...relicOptions.map(relic => `<option value="${relic.Relic_ID}">${relic.Relic_ID}: ${relic.Relic_Name}</option>`)
+    ...getSelectableRelics().map(relic => `<option value="${relic.Relic_ID}">${relic.Relic_ID}: ${relic.Relic_Name}</option>`)
   ];
   selectEl.innerHTML = options.join("");
 }
@@ -382,7 +402,7 @@ import { Stars } from "./Stars.js";
   const footer = `
 function getRelicsForChampion(relicIds = []) {
   return relicIds
-    .map(id => AllRelics.find(relic => relic.AllRelics === id))
+    .map(id => AllRelics.find(relic => relic.Relic_ID === id))
     .filter(Boolean);
 }
 
@@ -398,8 +418,27 @@ export const ChampionsWithRelics = Champion.map(champion => ({
 let activeRelicTarget = null;
 let relicMenu = null;
 
+function buildRelicRarityFilterButtons() {
+  return RELIC_RARITY_FILTERS.map((filter) => `
+    <button
+      type="button"
+      class="rarity-filter-btn${activeRelicRarityFilter === filter.value ? " is-active" : ""}"
+      data-relic-filter="${filter.value}"
+      aria-pressed="${activeRelicRarityFilter === filter.value ? "true" : "false"}"
+    >
+      <span class="rarity-chip-dot ${filter.tone}"></span>
+      <span>${filter.label}</span>
+    </button>
+  `).join("");
+}
+
 function buildRelicMenuHtml() {
-  const options = relicOptions.map(relic => {
+  const filteredRelics = getSelectableRelics().filter((relic) => {
+    if (activeRelicRarityFilter === "all") return true;
+    return normalizeRelicRarity(relic.Relic_Rarity) === activeRelicRarityFilter;
+  });
+
+  const options = filteredRelics.map(relic => {
     return `
       <button class="relic-option" type="button" data-relic-id="${relic.Relic_ID}">
         <img src="${relic.Relic_Icon}" alt="${relic.Relic_Name}" />
@@ -415,7 +454,24 @@ function buildRelicMenuHtml() {
     </button>
   `);
 
-  return `<div class="relic-menu-list">${options.join("")}</div>`;
+  const emptyState = filteredRelics.length
+    ? ""
+    : `<div class="relic-menu-empty">Aucune relique pour cette qualite.</div>`;
+
+  return `
+    <div class="relic-menu-toolbar">
+      <div class="rarity-switch compact">
+        ${buildRelicRarityFilterButtons()}
+      </div>
+    </div>
+    <div class="relic-menu-list">${options.join("")}</div>
+    ${emptyState}
+  `;
+}
+
+function renderRelicMenu() {
+  if (!relicMenu) return;
+  relicMenu.innerHTML = buildRelicMenuHtml();
 }
 
 function createRelicMenu() {
@@ -425,6 +481,13 @@ function createRelicMenu() {
   document.body.appendChild(menu);
 
   menu.addEventListener("click", (event) => {
+    const filterButton = event.target.closest("[data-relic-filter]");
+    if (filterButton) {
+      activeRelicRarityFilter = filterButton.dataset.relicFilter || "all";
+      renderRelicMenu();
+      return;
+    }
+
     const option = event.target.closest(".relic-option");
     if (!option || !activeRelicTarget) return;
 
@@ -458,6 +521,7 @@ function openRelicMenu(targetEl, champId, slotIndex) {
   }
 
   activeRelicTarget = { champId, slotIndex };
+  renderRelicMenu();
 
   const rect = targetEl.getBoundingClientRect();
   relicMenu.style.left = `${rect.left + window.scrollX}px`;
@@ -489,7 +553,7 @@ function renderTable() {
     const MyConstellation = constellationById.get(champion.Constellation_Number_ID);
 
     const relicSlotsHTML = champion.AllRelics.map((relicId, index) => {
-      const relic = AllRelics.find(r => r.Relic_ID === relicId);
+      const relic = findRelicById(relicId);
       const isEmpty = !relicId || relicId === 0 || !relic;
       const relicClass = isEmpty ? "empty" : relic.Relic_Rarity.toLowerCase();
       const relicName = isEmpty ? "-" : relic.Relic_Name;
@@ -709,6 +773,9 @@ if (addChampionBtn) {
       addChampionPanel.style.display = "none";
       return;
     }
+    populateRelicSelect(addChampionRelic1Select);
+    populateRelicSelect(addChampionRelic2Select);
+    populateRelicSelect(addChampionRelic3Select);
     resetAddChampionForm();
     addChampionPanel.style.display = "block";
     addChampionNameInput?.focus();
@@ -878,7 +945,7 @@ tbody.addEventListener("click", (event) => {
   const slotIndex = Number(target.dataset.index);
 
   if (!champId || field !== "AllRelics") return;
-  if (!relicOptions.length) return;
+  if (!getSelectableRelics().length) return;
 
   openRelicMenu(target, champId, slotIndex);
 });
