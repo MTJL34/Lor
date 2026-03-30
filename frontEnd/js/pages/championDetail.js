@@ -27,38 +27,27 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
     
     const inv = appState.inventoryByRegion[regionName] || {};
     let pendingChanges = { ...inv };
-    let isDirty = false;
+
+    const syncPendingChanges = () => {
+        appState.inventoryByRegion[regionName] = { ...pendingChanges };
+        saveState(appState);
+    };
     
     const handleInventoryChange = (key, value) => {
         pendingChanges[key] = value;
-        isDirty = true;
-        // Update button state
-        applyButton.disabled = false;
-        applyButton.textContent = '💾 Appliquer les modifications';
-    };
-    
-    const handleApply = () => {
-        appState.inventoryByRegion[regionName] = { ...pendingChanges };
-        saveState(appState);
-        isDirty = false;
-        applyButton.disabled = true;
-        applyButton.textContent = '✅ Modifications appliquées';
-        // Refresh without reload
-        if (updateState) updateState(appState);
+        syncPendingChanges();
     };
     
     const handleCraft = (newInv) => {
         pendingChanges = { ...newInv };
-        appState.inventoryByRegion[regionName] = newInv;
-        saveState(appState);
+        syncPendingChanges();
         if (updateState) updateState(appState);
     };
     
     const handleReset = () => {
         if (confirm('Réinitialiser l\'inventaire de cette région aux valeurs par défaut ?')) {
             pendingChanges = { ...regionBase.inventory_default };
-            appState.inventoryByRegion[regionName] = { ...regionBase.inventory_default };
-            saveState(appState);
+            syncPendingChanges();
             if (updateState) updateState(appState);
         }
     };
@@ -70,8 +59,7 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
                 cleared[key] = 0;
             }
             pendingChanges = cleared;
-            appState.inventoryByRegion[regionName] = cleared;
-            saveState(appState);
+            syncPendingChanges();
             if (updateState) updateState(appState);
         }
     };
@@ -80,8 +68,9 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
         window.location.hash = `#/region/${encodeURIComponent(regionName)}`;
     }, 'secondary');
     
-    const applyButton = Button('✅ Tout est à jour', handleApply, 'primary');
-    applyButton.disabled = true;
+    const refreshButton = Button('🔄 Rafraîchir la vue', () => {
+        if (updateState) updateState(appState);
+    }, 'primary');
     
     // Créer un objet "totals" basé sur les ressources du champion pour ResourceTable
     const championTotals = {
@@ -104,8 +93,15 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
         ),
         createElement('div', { style: { marginBottom: '1rem', display: 'flex', gap: '0.5rem' } }, [
             backButton,
-            applyButton
+            refreshButton
         ]),
+        createElement('p', {
+            style: {
+                marginBottom: '1rem',
+                color: 'var(--text-secondary)',
+                fontSize: '0.9rem'
+            }
+        }, ['Les modifications sont sauvegardées automatiquement en base.']),
         Card('Inventaire de ' + regionName, [
             ResourceTable(championRegionBase, pendingChanges, handleInventoryChange, regionName)
         ], [

@@ -18,38 +18,27 @@ export function RegionDetailPage(appState, baseData, regionName, updateState) {
     
     const inv = appState.inventoryByRegion[regionName] || {};
     let pendingChanges = { ...inv };
-    let isDirty = false;
+
+    const syncPendingChanges = () => {
+        appState.inventoryByRegion[regionName] = { ...pendingChanges };
+        saveState(appState);
+    };
     
     const handleInventoryChange = (key, value) => {
         pendingChanges[key] = value;
-        isDirty = true;
-        // Update button state
-        applyButton.disabled = false;
-        applyButton.textContent = '💾 Appliquer les modifications';
-    };
-    
-    const handleApply = () => {
-        appState.inventoryByRegion[regionName] = { ...pendingChanges };
-        saveState(appState);
-        isDirty = false;
-        applyButton.disabled = true;
-        applyButton.textContent = '✅ Modifications appliquées';
-        // Refresh without reload
-        updateState(appState);
+        syncPendingChanges();
     };
     
     const handleCraft = (newInv) => {
         pendingChanges = { ...newInv };
-        appState.inventoryByRegion[regionName] = newInv;
-        saveState(appState);
+        syncPendingChanges();
         updateState(appState);
     };
     
     const handleReset = () => {
         if (confirm('Réinitialiser l\'inventaire de cette région aux valeurs par défaut ?')) {
             pendingChanges = { ...regionBase.inventory_default };
-            appState.inventoryByRegion[regionName] = { ...regionBase.inventory_default };
-            saveState(appState);
+            syncPendingChanges();
             updateState(appState);
         }
     };
@@ -61,8 +50,7 @@ export function RegionDetailPage(appState, baseData, regionName, updateState) {
                 cleared[key] = 0;
             }
             pendingChanges = cleared;
-            appState.inventoryByRegion[regionName] = cleared;
-            saveState(appState);
+            syncPendingChanges();
             updateState(appState);
         }
     };
@@ -71,15 +59,23 @@ export function RegionDetailPage(appState, baseData, regionName, updateState) {
         window.location.hash = '#/regions';
     }, 'secondary');
     
-    const applyButton = Button('✅ Tout est à jour', handleApply, 'primary');
-    applyButton.disabled = true;
+    const refreshButton = Button('🔄 Rafraîchir la vue', () => {
+        updateState(appState);
+    }, 'primary');
     
     const content = createElement('div', {}, [
         PageHeader(`🗺️ ${formatRegionName(regionName)}`, 'Gérez l\'inventaire de cette région'),
         createElement('div', { style: { marginBottom: '1rem', display: 'flex', gap: '0.5rem' } }, [
             backButton,
-            applyButton
+            refreshButton
         ]),
+        createElement('p', {
+            style: {
+                marginBottom: '1rem',
+                color: 'var(--text-secondary)',
+                fontSize: '0.9rem'
+            }
+        }, ['Les modifications sont sauvegardées automatiquement en base.']),
         Card('Inventaire', [
             ResourceTable(regionBase, pendingChanges, handleInventoryChange, regionName)
         ], [
