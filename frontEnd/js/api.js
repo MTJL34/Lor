@@ -1,6 +1,7 @@
 const API_TIMEOUT_MS = 10000;
 
 let warnShown = false;
+let resolvedApiBase = '';
 
 function normalizeApiBase(base) {
   return String(base || '')
@@ -8,14 +9,40 @@ function normalizeApiBase(base) {
     .replace(/\/$/, '');
 }
 
-function detectApiBase() {
+function buildApiUrl(apiBase, path) {
+  const cleanedPath = String(path || '').startsWith('/') ? path : `/${path}`;
+  return `${apiBase}${cleanedPath}`;
+}
+
+function uniqApiBases(bases) {
+  return [...new Set(
+    bases
+      .map(normalizeApiBase)
+      .filter(Boolean)
+  )];
+}
+
+function shouldTryDedicatedApiPort(port) {
+  return Boolean(port && port !== '3000' && port !== '80' && port !== '443');
+}
+
+function isLikelyFrontendPort(port) {
+  return ['4173', '5173', '5500', '8000', '8080'].includes(String(port || ''));
+}
+
+function detectApiBases() {
+  const candidates = [];
   const fromWindow = typeof window !== 'undefined' ? window.__LOR_API_BASE__ : '';
-  if (fromWindow) return normalizeApiBase(fromWindow);
+  if (fromWindow) {
+    candidates.push(fromWindow);
+  }
 
   if (typeof window !== 'undefined') {
     try {
       const fromLocalStorage = window.localStorage.getItem('lor_api_base');
-      if (fromLocalStorage) return normalizeApiBase(fromLocalStorage);
+      if (fromLocalStorage) {
+        candidates.push(fromLocalStorage);
+      }
     } catch (_) {
       // localStorage can be unavailable in some iframe/privacy contexts.
     }
@@ -23,33 +50,43 @@ function detectApiBase() {
 
   if (typeof window !== 'undefined' && window.location) {
     const { hostname, origin, port, protocol } = window.location;
-    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
 
     if (protocol.startsWith('http')) {
-      if (isLocalHost && port && port !== '3000') {
-        return 'http://localhost:3000/api';
-      }
+      const sameOriginApi = `${origin}/api`;
+      const sameHostDedicatedApi = shouldTryDedicatedApiPort(port)
+        ? `${protocol}//${hostname}:3000/api`
+        : '';
 
-      return `${origin}/api`;
+      // When the UI is served from a frontend/static port on another machine,
+      // the API usually still lives on the same host but on port 3000.
+      if (isLikelyFrontendPort(port) && sameHostDedicatedApi) {
+        candidates.push(sameHostDedicatedApi, sameOriginApi);
+      } else {
+        candidates.push(sameOriginApi, sameHostDedicatedApi);
+      }
     }
   }
 
-  return 'http://localhost:3000/api';
+  candidates.push('http://localhost:3000/api');
+  return uniqApiBases(candidates);
 }
 
-const API_BASE = detectApiBase();
+const API_BASES = detectApiBases();
 
-function buildUrl(path) {
-  const cleanedPath = String(path || '').startsWith('/') ? path : `/${path}`;
-  return `${API_BASE}${cleanedPath}`;
+function getApiBasesToTry() {
+  if (!resolvedApiBase) {
+    return API_BASES;
+  }
+
+  return uniqApiBases([resolvedApiBase, ...API_BASES]);
 }
 
-async function request(path, options = {}) {
+async function requestOnce(apiBase, path, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
   try {
-    const response = await fetch(buildUrl(path), {
+    const response = await fetch(buildApiUrl(apiBase, path), {
       method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -60,7 +97,21 @@ async function request(path, options = {}) {
     });
 
     const text = await response.text();
-    const json = text ? JSON.parse(text) : null;
+    let json = null;
+
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch (error) {
+        if (response.ok) {
+          const parseError = new Error('Invalid JSON response');
+          parseError.code = 'INVALID_JSON';
+          parseError.status = response.status;
+          parseError.cause = error;
+          throw parseError;
+        }
+      }
+    }
 
     if (!response.ok) {
       const message = json && json.message ? json.message : `HTTP ${response.status}`;
@@ -76,6 +127,33 @@ async function request(path, options = {}) {
   }
 }
 
+function shouldRetryWithAnotherApiBase(error) {
+  if (!error) return false;
+  if (error.name === 'AbortError') return true;
+  if (error instanceof TypeError) return true;
+  if (error.code === 'INVALID_JSON') return true;
+  return [404, 502, 503, 504].includes(Number(error.status));
+}
+
+async function request(path, options = {}) {
+  let lastError = null;
+
+  for (const apiBase of getApiBasesToTry()) {
+    try {
+      const response = await requestOnce(apiBase, path, options);
+      resolvedApiBase = apiBase;
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetryWithAnotherApiBase(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error('API unavailable');
+}
+
 function logApiWarningOnce(error, context) {
   if (warnShown) return;
   warnShown = true;
@@ -83,7 +161,7 @@ function logApiWarningOnce(error, context) {
 }
 
 export function getApiBase() {
-  return API_BASE;
+  return resolvedApiBase || API_BASES[0] || 'http://localhost:3000/api';
 }
 
 export async function fetchSiteDataFromApi() {

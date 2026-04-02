@@ -2,14 +2,21 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LoR – Database</title>
     <link rel="stylesheet" href="../css/poc.css">
 </head>
 <body>
+<button type="button" class="nav-toggle" id="pocNavToggle" aria-controls="pocSidebar" aria-expanded="false">
+    <span class="nav-toggle-icon" aria-hidden="true">☰</span>
+    <span>Menu</span>
+</button>
+<div class="nav-backdrop" id="pocNavBackdrop"></div>
 <div id="app">
-    <nav class="sidebar">
+    <nav class="sidebar" id="pocSidebar" aria-hidden="true">
         <div class="sidebar-header">
             <h1>LoR PoC</h1>
+            <button type="button" class="nav-close" id="pocNavClose" aria-label="Fermer le menu">×</button>
         </div>
         <ul class="nav-links">
             <li><a href="./poc_champions.html" class="active">Home</a></li>
@@ -23,7 +30,7 @@
     </main>
 </div>
 
-
+<script type="module" src="../js/pocLayout.js"></script>
 <script type="module" src="../js/champions_poc.js"></script>
 </body>
 </html>

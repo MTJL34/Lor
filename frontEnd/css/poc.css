@@ -12,14 +12,21 @@
     --text-primary: #f7fafc;
     --text-secondary: #cbd5e0;
     --border: #4a5568;
+    --sidebar-width: min(320px, calc(100vw - 24px));
 }
 
 /* ===== GLOBAL ===== */
+* {
+    box-sizing: border-box;
+}
+
 body {
+    margin: 0;
     background: var(--bg-dark);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
     padding: 0;
+    overflow-x: hidden;
 }
 
 h1, h2 {
@@ -27,30 +34,107 @@ h1, h2 {
 }
 
 #app {
-    display: flex;
     min-height: 100vh;
+    position: relative;
+}
+
+body.poc-nav-open {
+    overflow: hidden;
+}
+
+.nav-toggle {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1400;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(45, 55, 72, 0.94);
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+}
+
+.nav-toggle:hover {
+    background: rgba(74, 85, 104, 0.98);
+}
+
+.nav-toggle-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(15, 23, 42, 0.58);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.nav-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .sidebar {
-    width: 250px;
+    width: var(--sidebar-width);
     background: var(--bg-medium);
-    border-right: 1px solid var(--border);
+    border-right: 1px solid rgba(74, 85, 104, 0.65);
     position: fixed;
-    height: 100vh;
+    inset: 0 auto 0 0;
+    z-index: 1300;
     overflow-y: auto;
+    transform: translateX(calc(-100% - 20px));
+    transition: transform 0.22s ease;
+    box-shadow: 18px 0 42px rgba(0, 0, 0, 0.34);
+}
+
+.sidebar.is-open {
+    transform: translateX(0);
 }
 
 .sidebar-header {
-    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 1rem 1rem 0.9rem;
     border-bottom: 1px solid var(--border);
 }
 
 .sidebar-header h1 {
+    margin: 0;
     font-size: 1.5rem;
+    text-align: left;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+.nav-close {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(26, 32, 44, 0.85);
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.nav-close:hover {
+    background: var(--bg-light);
 }
 
 .nav-links {
@@ -95,15 +179,18 @@ h1, h2 {
 }
 
 .content {
-    flex: 1;
-    margin-left: 250px;
-    padding: 1rem;
-    width: calc(100% - 250px);
+    min-height: 100vh;
+    width: 100%;
+    margin: 0;
+    padding: 4.75rem 1rem 1.5rem;
     max-width: none;
+    overflow-x: auto;
 }
 
 .actions {
     display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
     justify-content: flex-end;
     margin: 10px 0 16px;
 }
@@ -206,7 +293,8 @@ h1, h2 {
 
 /* ===== TABLE ===== */
 table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     margin-bottom: 32px;
 }
@@ -215,6 +303,11 @@ th, td {
     border: 1px solid var(--border);
     padding: 8px;
     text-align: center;
+}
+
+#championsTable th,
+#championsTable td {
+    white-space: nowrap;
 }
 
 .stat-select {
@@ -284,8 +377,9 @@ tr:nth-child(even) {
 .rarity.epic   { color: #a855f7; }
 
 .relics {
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
 }
 
 .relics-toolbar {
@@ -722,12 +816,8 @@ tfoot th:empty::after {
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-
-    .content {
-        margin-left: 200px;
+    :root {
+        --sidebar-width: min(280px, calc(100vw - 20px));
     }
 
     .relic-add-layout {
@@ -749,17 +839,16 @@ tfoot th:empty::after {
 
 @media (max-width: 640px) {
     #app {
-        flex-direction: column;
+        min-height: auto;
     }
 
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
+    .nav-toggle {
+        top: 10px;
+        left: 10px;
+        padding: 9px 12px;
     }
 
     .content {
-        margin-left: 0;
-        width: 100%;
+        padding-top: 4.5rem;
     }
 }
