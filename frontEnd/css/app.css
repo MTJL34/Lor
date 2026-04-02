@@ -528,9 +528,9 @@ textarea {
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1366px) {
     :root {
-        --app-sidebar-width: min(290px, calc(100vw - 24px));
+        --app-sidebar-width: min(320px, calc(100vw - 24px));
     }
 
     .app-nav-toggle {
@@ -584,13 +584,25 @@ textarea {
     .content {
         margin-left: 0;
         width: 100%;
-        padding: 4.5rem 0.75rem 1rem;
+        padding: 4.5rem 1rem 1.25rem;
     }
 
     .card {
         padding: 1rem;
     }
 
+    .page-header h2 {
+        font-size: 1.8rem;
+    }
+
+    .poc-embed-frame {
+        min-height: 76vh;
+        height: 76vh;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 1024px) {
     .card-header {
         flex-direction: column;
         align-items: stretch;
@@ -604,16 +616,6 @@ textarea {
     .btn-group .btn {
         flex: 1 1 auto;
         justify-content: center;
-    }
-
-    .page-header h2 {
-        font-size: 1.8rem;
-    }
-
-    .poc-embed-frame {
-        min-height: 72vh;
-        height: 72vh;
-        border-radius: 10px;
     }
 }
 

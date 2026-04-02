@@ -237,6 +237,41 @@ body.poc-nav-open {
     font: inherit;
 }
 
+.champions-controls {
+    display: grid;
+    grid-template-columns: minmax(260px, 2fr) repeat(2, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin: 0 0 14px;
+}
+
+.champions-control-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.champions-control-field input,
+.champions-control-field select {
+    width: 100%;
+    background: rgba(26, 32, 44, 0.95);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+}
+
+.champions-control-field input::placeholder {
+    color: rgba(203, 213, 224, 0.72);
+}
+
+.champions-control-search {
+    min-width: 0;
+}
+
 .filters {
     display: flex;
     gap: 12px;
@@ -340,7 +375,10 @@ th, td {
 }
 
 .champions-mobile-summary {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 0 0 16px;
 }
 
 .champions-mobile-summary-card {
@@ -348,6 +386,7 @@ th, td {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px;
+    min-height: 84px;
 }
 
 .champions-mobile-summary-card strong {
@@ -366,6 +405,13 @@ th, td {
 
 .champion-name-text {
     font-weight: 700;
+}
+
+.champions-empty-state {
+    padding: 28px 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: normal !important;
 }
 
 .stat-select {
@@ -929,17 +975,21 @@ tfoot th:empty::after {
         gap: 8px;
     }
 
+    .champions-controls {
+        grid-template-columns: 1fr;
+    }
+
     .filters select,
+    .champions-control-field input,
+    .champions-control-field select,
     .stat-select {
         width: 100%;
         max-width: 100%;
     }
 
     .champions-mobile-summary {
-        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
-        margin: 0 0 16px;
     }
 
     #championsTable {
@@ -968,6 +1018,10 @@ tfoot th:empty::after {
         border-radius: 16px;
         background: rgba(45, 55, 72, 0.88);
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+    }
+
+    #championsTable tbody tr.champions-empty-row {
+        padding: 18px 14px;
     }
 
     #championsTable tbody td,
@@ -1001,6 +1055,12 @@ tfoot th:empty::after {
 
     .champion-name-cell::before {
         content: none !important;
+    }
+
+    .champions-empty-row .champions-empty-state {
+        display: block;
+        padding: 0;
+        border: none;
     }
 
     .champion-name-text {

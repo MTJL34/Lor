@@ -38,6 +38,37 @@ html += `
       <button type="button" id="copyChampionsBtn">Copier champions</button>
       <button type="button" id="addChampionBtn">Ajouter champion</button>
     </div>
+    <div class="champions-controls">
+      <label class="champions-control-field champions-control-search">
+        <span>Recherche</span>
+        <input
+          type="search"
+          id="championSearchInput"
+          placeholder="Nom, region, relique, niveau..."
+          autocomplete="off"
+        />
+      </label>
+      <label class="champions-control-field">
+        <span>Trier par</span>
+        <select id="championSortKey">
+          <option value="name">Nom</option>
+          <option value="cost">Cout</option>
+          <option value="region">Region</option>
+          <option value="poc">POC</option>
+          <option value="stars">Stars</option>
+          <option value="constellation">Constellation</option>
+          <option value="level">Niveau</option>
+          <option value="missing">Niveau manquant</option>
+        </select>
+      </label>
+      <label class="champions-control-field">
+        <span>Ordre</span>
+        <select id="championSortDirection">
+          <option value="asc">Croissant</option>
+          <option value="desc">Decroissant</option>
+        </select>
+      </label>
+    </div>
     <div id="addChampionPanel" class="add-champion-panel" style="display:none; margin: 12px 0;">
       <h3>Ajouter un champion</h3>
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; align-items:end;">
@@ -150,6 +181,9 @@ const addChampionPocCheckbox = document.getElementById("addChampionPoc");
 const addChampionExclusiveCheckbox = document.getElementById("addChampionExclusive");
 const addChampionSubmitBtn = document.getElementById("addChampionSubmitBtn");
 const addChampionCancelBtn = document.getElementById("addChampionCancelBtn");
+const championSearchInput = document.getElementById("championSearchInput");
+const championSortKey = document.getElementById("championSortKey");
+const championSortDirection = document.getElementById("championSortDirection");
 const filterPoc = document.getElementById("filterPoc");
 const filterRegion = document.getElementById("filterRegion");
 const filterCost = document.getElementById("filterCost");
@@ -181,6 +215,11 @@ const filters = {
   poc: "all",
   region: "all",
   cost: "all"
+};
+const viewControls = {
+  search: "",
+  sortKey: "name",
+  sortDirection: "asc"
 };
 
 function replaceArrayContents(target, values) {
@@ -214,6 +253,14 @@ function compareChampionNames(a, b) {
   const nameA = String(a?.Champion_Name || "");
   const nameB = String(b?.Champion_Name || "");
   return nameA.localeCompare(nameB, "fr", { sensitivity: "base" });
+}
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function sortChampionsByName(champions) {
@@ -342,13 +389,118 @@ function populateFilters() {
   }
 }
 
+function getChampionRegionName(champion) {
+  return Region.find(region => region.Region_ID === champion.Region_ID)?.Region_Name || "";
+}
+
+function getChampionCostValue(champion) {
+  return Number(Cost.find(cost => cost.Cost_ID === champion.Cost_ID)?.Cost_Value) || 0;
+}
+
+function getChampionStarsValue(champion) {
+  return Number(starsById.get(champion.Stars_ID)?.Stars_Value) || 0;
+}
+
+function getChampionConstellationValue(champion) {
+  return toNum(constellationById.get(champion.Constellation_Number_ID)?.Constellation_Value);
+}
+
+function getChampionLevelValue(champion) {
+  return Number(levelById.get(champion.Level_ID)?.Actual_Level) || 0;
+}
+
+function getChampionMissingLevelValue(champion) {
+  return Number(levelById.get(champion.Level_ID)?.Level_Needed) || 0;
+}
+
+function getChampionRelicNames(champion) {
+  return (Array.isArray(champion.AllRelics) ? champion.AllRelics : [])
+    .map((relicId) => findRelicById(relicId)?.Relic_Name || "")
+    .filter(Boolean);
+}
+
+function championMatchesSearch(champion) {
+  const search = normalizeSearchText(viewControls.search);
+  if (!search) return true;
+
+  const searchableText = [
+    champion.Champion_Name,
+    getChampionRegionName(champion),
+    String(getChampionCostValue(champion)),
+    String(getChampionStarsValue(champion)),
+    String(getChampionConstellationValue(champion)),
+    String(getChampionLevelValue(champion)),
+    String(getChampionMissingLevelValue(champion)),
+    champion.POC ? "poc oui yes" : "poc non no",
+    ...getChampionRelicNames(champion)
+  ].map(normalizeSearchText).join(" ");
+
+  return searchableText.includes(search);
+}
+
 function applyFilters(champions) {
   return champions.filter(champion => {
     if (filters.poc === "poc" && !champion.POC) return false;
     if (filters.poc === "nonpoc" && champion.POC) return false;
     if (filters.region !== "all" && String(champion.Region_ID) !== filters.region) return false;
     if (filters.cost !== "all" && String(champion.Cost_ID) !== filters.cost) return false;
+    if (!championMatchesSearch(champion)) return false;
     return true;
+  });
+}
+
+function compareSortValues(left, right) {
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right;
+  }
+
+  return String(left || "").localeCompare(String(right || ""), "fr", {
+    sensitivity: "base",
+    numeric: true
+  });
+}
+
+function getChampionSortValue(champion, sortKey) {
+  switch (sortKey) {
+    case "cost":
+      return getChampionCostValue(champion);
+    case "region":
+      return getChampionRegionName(champion);
+    case "poc":
+      return champion.POC ? 1 : 0;
+    case "stars":
+      return getChampionStarsValue(champion);
+    case "constellation":
+      return getChampionConstellationValue(champion);
+    case "level":
+      return getChampionLevelValue(champion);
+    case "missing":
+      return getChampionMissingLevelValue(champion);
+    case "name":
+    default:
+      return champion.Champion_Name || "";
+  }
+}
+
+function sortVisibleChampions(champions) {
+  const direction = viewControls.sortDirection === "desc" ? -1 : 1;
+
+  return [...champions].sort((left, right) => {
+    const primary = compareSortValues(
+      getChampionSortValue(left, viewControls.sortKey),
+      getChampionSortValue(right, viewControls.sortKey)
+    );
+
+    if (primary !== 0) {
+      return primary * direction;
+    }
+
+    const byName = compareChampionNames(left, right);
+    if (byName !== 0) {
+      return byName;
+    }
+
+    return (Number(left.Champion_ID) || 0) - (Number(right.Champion_ID) || 0);
   });
 }
 
@@ -567,8 +719,8 @@ function closeRelicMenu() {
 function renderTable() {
   tbody.innerHTML = "";
 
-  const effectiveChampions = sortChampionsByName(getAllChampions().map(getEffectiveChampion));
-  const visibleChampions = applyFilters(effectiveChampions);
+  const effectiveChampions = getAllChampions().map(getEffectiveChampion);
+  const visibleChampions = sortVisibleChampions(applyFilters(effectiveChampions));
 
   visibleChampions.forEach(champion => {
     const tr = document.createElement("tr");
@@ -734,6 +886,17 @@ function renderTable() {
     tbody.appendChild(tr);
   });
 
+  if (!visibleChampions.length) {
+    const emptyRow = document.createElement("tr");
+    emptyRow.className = "champions-empty-row";
+    emptyRow.innerHTML = `
+      <td class="champions-empty-state" colspan="10">
+        Aucun champion ne correspond a cette recherche.
+      </td>
+    `;
+    tbody.appendChild(emptyRow);
+  }
+
   const championsPOC = visibleChampions.filter(c => c.POC);
 
   const totalPOC = championsPOC.length;
@@ -765,6 +928,10 @@ function renderTable() {
 
   if (championsTotalsMobile) {
     championsTotalsMobile.innerHTML = `
+      <div class="champions-mobile-summary-card">
+        <span class="summary-label">Resultats</span>
+        <strong>${visibleChampions.length}</strong>
+      </div>
       <div class="champions-mobile-summary-card">
         <span class="summary-label">Champions PoC</span>
         <strong>${totalPOC}</strong>
@@ -927,6 +1094,29 @@ if (filterRegion) {
 if (filterCost) {
   filterCost.addEventListener("change", (event) => {
     filters.cost = event.target.value;
+    renderTable();
+  });
+}
+
+if (championSearchInput) {
+  championSearchInput.addEventListener("input", (event) => {
+    viewControls.search = event.target.value || "";
+    renderTable();
+  });
+}
+
+if (championSortKey) {
+  championSortKey.value = viewControls.sortKey;
+  championSortKey.addEventListener("change", (event) => {
+    viewControls.sortKey = event.target.value || "name";
+    renderTable();
+  });
+}
+
+if (championSortDirection) {
+  championSortDirection.value = viewControls.sortDirection;
+  championSortDirection.addEventListener("change", (event) => {
+    viewControls.sortDirection = event.target.value === "desc" ? "desc" : "asc";
     renderTable();
   });
 }
