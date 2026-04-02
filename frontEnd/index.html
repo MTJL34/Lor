@@ -7,10 +7,16 @@
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+    <button type="button" class="app-nav-toggle" id="appNavToggle" aria-controls="appSidebar" aria-expanded="false">
+        <span class="app-nav-toggle-icon" aria-hidden="true">☰</span>
+        <span>Menu</span>
+    </button>
+    <div class="app-nav-backdrop" id="appNavBackdrop"></div>
     <div id="app">
-        <nav class="sidebar">
+        <nav class="sidebar" id="appSidebar" aria-hidden="false">
             <div class="sidebar-header">
                 <h1>LoR Constellation</h1>
+                <button type="button" class="app-nav-close" id="appNavClose" aria-label="Fermer le menu">×</button>
             </div>
             <ul class="nav-links">
                 <li><a href="#/dashboard" data-nav="dashboard">📊 Dashboard</a></li>

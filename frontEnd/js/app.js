@@ -22,6 +22,61 @@ export const globalState = {
     appState: null
 };
 
+function setMainNavOpen(isOpen) {
+    const sidebar = $('#appSidebar');
+    const toggle = $('#appNavToggle');
+    const backdrop = $('#appNavBackdrop');
+
+    if (!sidebar || !toggle || !backdrop) {
+        return;
+    }
+
+    sidebar.classList.toggle('is-open', isOpen);
+    backdrop.classList.toggle('is-open', isOpen);
+    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    sidebar.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    document.body.classList.toggle('app-nav-open', isOpen);
+}
+
+function setupResponsiveNav() {
+    const toggle = $('#appNavToggle');
+    const close = $('#appNavClose');
+    const backdrop = $('#appNavBackdrop');
+    const sidebar = $('#appSidebar');
+
+    if (!toggle || !backdrop || !sidebar) {
+        return;
+    }
+
+    toggle.addEventListener('click', () => {
+        const isOpen = sidebar.classList.contains('is-open');
+        setMainNavOpen(!isOpen);
+    });
+
+    close?.addEventListener('click', () => setMainNavOpen(false));
+    backdrop.addEventListener('click', () => setMainNavOpen(false));
+
+    sidebar.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest('a')) {
+            setMainNavOpen(false);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 760) {
+            setMainNavOpen(false);
+            sidebar.setAttribute('aria-hidden', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setMainNavOpen(false);
+        }
+    });
+}
+
 async function loadBaseData() {
     try {
         const apiData = await fetchSiteDataFromApi();
@@ -205,6 +260,9 @@ function route() {
     console.log('Page to render:', page);
     render('#page-container', page);
     setActiveNav(activeNav);
+    if (window.innerWidth <= 760) {
+        setMainNavOpen(false);
+    }
 }
 
 async function init() {
@@ -225,6 +283,7 @@ async function init() {
     
     globalState.appState = await initializeState();
     saveState(globalState.appState);
+    setupResponsiveNav();
     
     window.addEventListener('hashchange', route);
     route();
