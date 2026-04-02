@@ -205,7 +205,7 @@ function buildRelicSections(customRelics) {
 
       return `
         <tr>
-          <td>
+          <td data-label="Image" class="relic-image-cell">
             <img
               src="${escapeHtml(relic.Relic_Icon)}"
               alt="${escapeHtml(relic.Relic_Name)}"
@@ -213,10 +213,10 @@ function buildRelicSections(customRelics) {
               height="64"
             >
           </td>
-          <td><code>${escapeHtml(relic.Relic_ID)}</code></td>
-          <td>${escapeHtml(relic.Relic_Name)}</td>
-          <td class="relic-description-cell">${escapeHtml(description)}</td>
-          <td><span class="relic-source-badge ${sourceTone}">${source}</span></td>
+          <td data-label="ID"><code>${escapeHtml(relic.Relic_ID)}</code></td>
+          <td data-label="Nom">${escapeHtml(relic.Relic_Name)}</td>
+          <td data-label="Description" class="relic-description-cell">${escapeHtml(description)}</td>
+          <td data-label="Source"><span class="relic-source-badge ${sourceTone}">${source}</span></td>
         </tr>
       `;
     }).join("");

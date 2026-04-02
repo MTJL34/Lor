@@ -107,6 +107,7 @@ html += `
         </select>
       </label>
     </div>
+    <div id="championsTotalsMobile" class="champions-mobile-summary"></div>
     <table id="championsTable">
         <thead>
             <tr>
@@ -131,6 +132,7 @@ html += `
 document.querySelector(".js_content").innerHTML = html;
 
 const tbody = document.querySelector("#championsTable tbody");
+const championsTotalsMobile = document.getElementById("championsTotalsMobile");
 const copyChampionsBtn = document.getElementById("copyChampionsBtn");
 const addChampionBtn = document.getElementById("addChampionBtn");
 const addChampionPanel = document.getElementById("addChampionPanel");
@@ -606,9 +608,24 @@ function renderTable() {
       `;
     }).join("");
 
+    const pocCellHtml = isEditing ? `
+      <input
+        type="checkbox"
+        class="stat-checkbox"
+        data-champion-id="${champion.Champion_ID}"
+        data-field="POC"
+        ${champion.POC ? "checked" : ""}
+      />
+    ` : `
+      <span class="poc-value-text">${champion.POC ? "Oui" : "Non"}</span>
+      ${champion.POC ? `<span class="poc-yes">&#x2705;</span>` : ""}
+    `;
+
     tr.innerHTML = `
-      <td>${champion.Champion_Name}</td>
-      <td>
+      <td data-label="Nom" class="champion-name-cell">
+        <span class="champion-name-text">${champion.Champion_Name}</span>
+      </td>
+      <td data-label="Cout">
         ${isEditing ? `
           <select
             class="stat-select"
@@ -622,7 +639,7 @@ function renderTable() {
         `}
       </td>
 
-      <td class="region-cell">
+      <td class="region-cell" data-label="Region">
         ${isEditing ? `
           <select
             class="stat-select"
@@ -648,20 +665,10 @@ function renderTable() {
         `}
       </td>
 
-      <td class="poc-cell">
-        ${isEditing ? `
-          <input
-            type="checkbox"
-            class="stat-checkbox"
-            data-champion-id="${champion.Champion_ID}"
-            data-field="POC"
-            ${champion.POC ? "checked" : ""}
-          />
-        ` : `
-          ${champion.POC ? `<span class="poc-yes">&#x2705;</span>` : ""}
-        `}
+      <td class="poc-cell" data-label="POC">
+        ${pocCellHtml}
       </td>
-      <td>
+      <td data-label="Stars">
         ${isEditing ? `
           <select
             class="stat-select"
@@ -674,7 +681,7 @@ function renderTable() {
           <span>${MyStars?.Stars_Value ?? ""}</span>
         `}
       </td>
-      <td>
+      <td data-label="Constellation">
         ${isEditing ? `
           <select
             class="stat-select"
@@ -692,7 +699,7 @@ function renderTable() {
           <span>${MyConstellation?.Constellation_Value ?? ""}</span>
         `}
       </td>
-      <td>
+      <td data-label="Niveau">
         ${isEditing ? `
           <select
             class="stat-select"
@@ -705,14 +712,14 @@ function renderTable() {
           <span class="${getLevelClass(MyLevel?.Actual_Level)}">${MyLevel?.Actual_Level ?? ""}</span>
         `}
       </td>
-      <td>${MyLevel?.Level_Needed ?? ""}</td>
+      <td data-label="Niveau Manquant">${MyLevel?.Level_Needed ?? ""}</td>
 
-      <td>
+      <td data-label="Reliques">
         <div class="relic-editor">
           ${relicSlotsHTML}
         </div>
       </td>
-      <td>
+      <td data-label="Edition">
         <button
           type="button"
           class="edit-btn"
@@ -755,6 +762,31 @@ function renderTable() {
 
   const tfoot = document.querySelector("#championsTable tfoot");
   tfoot.innerHTML = "";
+
+  if (championsTotalsMobile) {
+    championsTotalsMobile.innerHTML = `
+      <div class="champions-mobile-summary-card">
+        <span class="summary-label">Champions PoC</span>
+        <strong>${totalPOC}</strong>
+      </div>
+      <div class="champions-mobile-summary-card">
+        <span class="summary-label">Stars</span>
+        <strong>${totalStars}</strong>
+      </div>
+      <div class="champions-mobile-summary-card">
+        <span class="summary-label">Constellations</span>
+        <strong>${totalConstellations}</strong>
+      </div>
+      <div class="champions-mobile-summary-card">
+        <span class="summary-label">Niveaux</span>
+        <strong>${totalLevels}</strong>
+      </div>
+      <div class="champions-mobile-summary-card">
+        <span class="summary-label">Niveaux manquants</span>
+        <strong>${totalMissingLevels}</strong>
+      </div>
+    `;
+  }
 
 const totalRow = document.createElement("tr");
 totalRow.innerHTML = `
