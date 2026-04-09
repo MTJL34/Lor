@@ -170,20 +170,6 @@ function cloneChampionOverrides(overrides) {
   return nextOverrides;
 }
 
-function mergeByKey(remoteItems, localItems, getKey) {
-  const entries = new Map();
-
-  for (const item of remoteItems) {
-    entries.set(getKey(item), item);
-  }
-
-  for (const item of localItems) {
-    entries.set(getKey(item), item);
-  }
-
-  return [...entries.values()];
-}
-
 function getLocalPoCData() {
   return {
     customRelics: readJsonFromStorage(STORAGE_KEYS.customRelics, [])
@@ -220,31 +206,14 @@ function normalizeRemotePoCData(appState) {
   };
 }
 
-function mergePoCData(remotePoCData, localPoCData) {
-  return {
-    customRelics: mergeByKey(
-      remotePoCData.customRelics,
-      localPoCData.customRelics,
-      (item) => item.Relic_ID
-    ),
-    customChampions: mergeByKey(
-      remotePoCData.customChampions,
-      localPoCData.customChampions,
-      (item) => item.Champion_ID
-    ),
-    championOverrides: {
-      ...remotePoCData.championOverrides,
-      ...localPoCData.championOverrides
-    }
-  };
-}
+function isPoCDataEmpty(pocData) {
+  if (!pocData || typeof pocData !== "object") {
+    return true;
+  }
 
-function serializePoCData(pocData) {
-  return JSON.stringify({
-    customRelics: pocData.customRelics.map(cloneRelic),
-    customChampions: pocData.customChampions.map(cloneChampion),
-    championOverrides: cloneChampionOverrides(pocData.championOverrides)
-  });
+  return pocData.customRelics.length === 0
+    && pocData.customChampions.length === 0
+    && Object.keys(pocData.championOverrides).length === 0;
 }
 
 function applyPoCDataToState(state, pocData) {
@@ -318,12 +287,14 @@ export async function initializePoCSharedState() {
     }
 
     const remotePoCData = normalizeRemotePoCData(remoteAppState);
-    const mergedPoCData = mergePoCData(remotePoCData, localPoCData);
+    const shouldBootstrapRemote = isPoCDataEmpty(remotePoCData) && !isPoCDataEmpty(localPoCData);
+    const nextPoCData = shouldBootstrapRemote ? localPoCData : remotePoCData;
 
-    applyPoCDataToState(state, mergedPoCData);
-    persistLocalPoCData(mergedPoCData);
+    applyPoCDataToState(state, nextPoCData);
+    persistLocalPoCData(nextPoCData);
 
-    if (serializePoCData(remotePoCData) !== serializePoCData(mergedPoCData)) {
+    // Bootstrap the shared backend once, but otherwise treat the API as the source of truth.
+    if (shouldBootstrapRemote) {
       scheduleRemoteSync();
     }
 
