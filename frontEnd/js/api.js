@@ -1,4 +1,7 @@
+import { FORCED_API_BASE } from './runtimeConfig.js';
+
 const API_TIMEOUT_MS = 10000;
+const DEFAULT_API_BASE = 'http://localhost:3000/api';
 
 let warnShown = false;
 let resolvedApiBase = '';
@@ -31,6 +34,11 @@ function isLikelyFrontendPort(port) {
 }
 
 function detectApiBases() {
+  const forcedApiBase = normalizeApiBase(FORCED_API_BASE);
+  if (forcedApiBase) {
+    return [forcedApiBase];
+  }
+
   const candidates = [];
   const fromWindow = typeof window !== 'undefined' ? window.__LOR_API_BASE__ : '';
   if (fromWindow) {
@@ -67,7 +75,7 @@ function detectApiBases() {
     }
   }
 
-  candidates.push('http://localhost:3000/api');
+  candidates.push(DEFAULT_API_BASE);
   return uniqApiBases(candidates);
 }
 
@@ -161,7 +169,7 @@ function logApiWarningOnce(error, context) {
 }
 
 export function getApiBase() {
-  return resolvedApiBase || API_BASES[0] || 'http://localhost:3000/api';
+  return resolvedApiBase || API_BASES[0] || DEFAULT_API_BASE;
 }
 
 export async function fetchSiteDataFromApi() {

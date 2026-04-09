@@ -28,6 +28,11 @@ Le front essaie d'abord l'API backend:
 
 Si l'API n'est pas dispo, il bascule automatiquement en mode local (`site_data.json` + `localStorage`).
 
+Pour forcer une API commune sur tous vos appareils, renseignez `FORCED_API_BASE`
+dans `js/runtimeConfig.js`.
+- Exemple: `https://votre-backend.example.com/api`
+- Tant que cette valeur est vide, le front garde sa detection automatique
+
 ## 📁 Structure du Projet
 
 ```

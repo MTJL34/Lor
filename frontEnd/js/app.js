@@ -21,7 +21,6 @@ export const globalState = {
     baseData: null,
     appState: null
 };
-const RESPONSIVE_NAV_BREAKPOINT = 1366;
 
 function setMainNavOpen(isOpen) {
     const sidebar = $('#appSidebar');
@@ -49,10 +48,8 @@ function setupResponsiveNav() {
         return;
     }
 
-    sidebar.setAttribute(
-        'aria-hidden',
-        window.innerWidth <= RESPONSIVE_NAV_BREAKPOINT ? 'true' : 'false'
-    );
+    sidebar.setAttribute('aria-hidden', 'true');
+    setMainNavOpen(false);
 
     toggle.addEventListener('click', () => {
         const isOpen = sidebar.classList.contains('is-open');
@@ -66,13 +63,6 @@ function setupResponsiveNav() {
         if (!(event.target instanceof Element)) return;
         if (event.target.closest('a')) {
             setMainNavOpen(false);
-        }
-    });
-
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > RESPONSIVE_NAV_BREAKPOINT) {
-            setMainNavOpen(false);
-            sidebar.setAttribute('aria-hidden', 'false');
         }
     });
 
@@ -266,9 +256,7 @@ function route() {
     console.log('Page to render:', page);
     render('#page-container', page);
     setActiveNav(activeNav);
-    if (window.innerWidth <= RESPONSIVE_NAV_BREAKPOINT) {
-        setMainNavOpen(false);
-    }
+    setMainNavOpen(false);
 }
 
 async function init() {
