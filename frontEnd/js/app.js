@@ -15,6 +15,13 @@ import { ExportImportPage } from './pages/exportImport.js';
 import { HelpRulesPage } from './pages/helpRules.js';
 import { PoCEmbedPage } from './pages/pocEmbed.js';
 import { applyComputedRegionTotals } from './calc.js';
+import {
+    inferSyncedChampionSource,
+    resolveChampionForEdit,
+    setMainAppBridge,
+    upsertChampionInAppState,
+    upsertChampionInBaseData
+} from './championState.js';
 
 // Global state object that can be imported
 export const globalState = {
@@ -105,16 +112,8 @@ async function initializeState() {
         if (saved.customChampions) {
             for (const [regionName, champions] of Object.entries(saved.customChampions)) {
                 if (globalState.baseData.regions[regionName]) {
-                    // Apply custom or modified champions over base data
                     for (const customChamp of champions) {
-                        const existingIndex = globalState.baseData.regions[regionName].champions.findIndex(
-                            c => c.name === customChamp.name
-                        );
-                        if (existingIndex !== -1) {
-                            globalState.baseData.regions[regionName].champions[existingIndex] = customChamp;
-                        } else {
-                            globalState.baseData.regions[regionName].champions.push(customChamp);
-                        }
+                        upsertChampionInBaseData(globalState.baseData, regionName, customChamp);
                     }
                 }
             }
@@ -154,6 +153,39 @@ async function initializeState() {
     
     applyComputedRegionTotals(globalState.baseData);
     return newState;
+}
+
+function registerMainAppBridge() {
+    setMainAppBridge({
+        upsertChampion(regionName, champion, options = {}) {
+            if (!globalState.appState || !globalState.baseData || !regionName || !champion?.name) {
+                return false;
+            }
+
+            const existingChampion = resolveChampionForEdit(
+                globalState.appState,
+                globalState.baseData,
+                regionName,
+                champion.name
+            );
+
+            if (options.onlyIfMissing && existingChampion) {
+                return false;
+            }
+
+            const nextChampion = {
+                ...(existingChampion || {}),
+                ...champion,
+                source: champion.source || inferSyncedChampionSource(existingChampion)
+            };
+
+            upsertChampionInAppState(globalState.appState, regionName, nextChampion);
+            upsertChampionInBaseData(globalState.baseData, regionName, nextChampion);
+            applyComputedRegionTotals(globalState.baseData);
+            saveState(globalState.appState);
+            return true;
+        }
+    });
 }
 
 function route() {
@@ -276,6 +308,7 @@ async function init() {
     }
     
     globalState.appState = await initializeState();
+    registerMainAppBridge();
     saveState(globalState.appState);
     setupResponsiveNav();
     

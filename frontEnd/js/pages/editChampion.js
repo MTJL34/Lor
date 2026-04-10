@@ -1,10 +1,19 @@
 import { createElement, formatRegionName } from '../ui.js';
 import { applyComputedRegionTotals } from '../calc.js';
 import { PageHeader, Card, Button } from '../components/layout.js';
+import {
+  buildMainAppChampion,
+  getRegionStarsMax,
+  isSpiritWorldRegion,
+  removeChampionFromAppState,
+  removeChampionFromBaseData,
+  resolveChampionForEdit,
+  upsertChampionInAppState,
+  upsertChampionInBaseData
+} from '../championState.js';
 
 export function EditChampionPage(appState, baseData, region, championName, updateState) {
-  // Find the champion
-  const champion = baseData.regions[region]?.champions.find(c => c.name === championName);
+  const champion = resolveChampionForEdit(appState, baseData, region, championName);
   
   if (!champion) {
     const errorMessage = createElement('div', { style: { padding: '20px' } }, [
@@ -18,10 +27,6 @@ export function EditChampionPage(appState, baseData, region, championName, updat
     ]);
   }
   
-  function getStarsMaxForRegion(regionName) {
-    return regionName === 'Spirit World' ? 7 : 6;
-  }
-
   const formData = {
     originalRegion: region,
     originalName: championName,
@@ -29,7 +34,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
     name: championName,
     cost: champion.cost || 0,
     stars_current: champion.stars || 0,
-    stars_max: getStarsMaxForRegion(region),
+    stars_max: getRegionStarsMax(region),
     poc: champion.poc || 0,
     nova_crystal: champion.resources?.nova_crystal || 0,
     star_crystal_tier1: champion.resources?.star_crystal_tiers?.[0] || 0,
@@ -60,12 +65,8 @@ export function EditChampionPage(appState, baseData, region, championName, updat
     tier4: [0, 350]
   };
 
-  function isSpiritWorldRegion(regionName) {
-    return regionName === 'Spirit World';
-  }
-
   function getGemstoneOptionsForRegion(regionName) {
-    return isSpiritWorldRegion(regionName) ? defaultGemstoneOptions : defaultGemstoneOptions;
+    return isSpiritWorldRegion(regionName) ? spiritWorldGemstoneOptions : defaultGemstoneOptions;
   }
 
   function getWildShardConfigForRegion(regionName) {
@@ -277,10 +278,6 @@ export function EditChampionPage(appState, baseData, region, championName, updat
           const input = container.querySelector(selector);
           if (!input) return;
           input.setAttribute('step', String(config.steps[index]));
-          const current = parseInt(input.value) || 0;
-          if (current === 0) {
-            input.value = String(config.defaults[index]);
-          }
         });
       }
 
@@ -323,11 +320,6 @@ export function EditChampionPage(appState, baseData, region, championName, updat
           if (!input) return;
           input.setAttribute('step', String(config.steps[index]));
           input.dataset.step = String(config.steps[index]);
-
-          const current = parseInt(input.value) || 0;
-          if (isSpiritWorld && current === 0) {
-            input.value = String(config.defaults[index]);
-          }
           if (!isSpiritWorld && index === 2) {
             input.value = '0';
           }
@@ -350,7 +342,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
       const starsMaxInput = container.querySelector('#stars_max');
 
       function updateStarsMax(regionName) {
-        const maxStars = getStarsMaxForRegion(regionName);
+        const maxStars = getRegionStarsMax(regionName);
         if (starsCurrentInput) {
           starsCurrentInput.setAttribute('max', String(maxStars));
           const currentVal = parseInt(starsCurrentInput.value) || 0;
@@ -408,12 +400,13 @@ export function EditChampionPage(appState, baseData, region, championName, updat
         ];
         const wildShardsTotal = wildShardsTiers.reduce((sum, tier) => sum + tier, 0);
         
-        const updatedChampion = {
+        const updatedChampion = buildMainAppChampion({
           name: newName,
           cost: parseInt(container.querySelector('#cost').value) || 0,
           stars: parseInt(container.querySelector('#stars_current').value) || 0,
           poc: parseInt(container.querySelector('#poc').value) || 0,
-          source: champion.source || 'base',
+          regionName: newRegion,
+          source: champion.source === 'custom' ? 'custom' : 'modified',
           resources: {
             nova_crystal: parseInt(container.querySelector('#nova_crystal').value) || 0,
             star_crystal_tiers: starCrystalTiers,
@@ -421,61 +414,18 @@ export function EditChampionPage(appState, baseData, region, championName, updat
             star_crystal_tier1_region: starCrystalTier1Region,
             gemstone_tiers: gemstoneTiers,
             gemstone_total: gemstoneTotal,
-        wild_shards_tiers: wildShardsTiers,
-        wild_shards_total: wildShardsTotal
-      }
-    };
-    
-    // Remove from old location if region or name changed
-    if (formData.originalRegion !== newRegion || formData.originalName !== newName) {
-      const originalChampions = baseData.regions[formData.originalRegion].champions;
-      const oldIndex = originalChampions.findIndex(c => c.name === formData.originalName);
-      if (oldIndex !== -1) {
-        originalChampions.splice(oldIndex, 1);
-      }
-      
-      // Remove from customChampions if exists
-      if (champion.source === 'custom') {
-        if (!appState.customChampions[formData.originalRegion]) {
-          appState.customChampions[formData.originalRegion] = [];
+            wild_shards_tiers: wildShardsTiers,
+            wild_shards_total: wildShardsTotal
+          }
+        });
+
+        if (formData.originalRegion !== newRegion || formData.originalName !== newName) {
+          removeChampionFromBaseData(baseData, formData.originalRegion, formData.originalName);
+          removeChampionFromAppState(appState, formData.originalRegion, formData.originalName);
         }
-        const customIndex = appState.customChampions[formData.originalRegion].findIndex(c => c.name === formData.originalName);
-        if (customIndex !== -1) {
-          appState.customChampions[formData.originalRegion].splice(customIndex, 1);
-        }
-      }
-    } else {
-      // Same location, just update in place
-      const champions = baseData.regions[formData.originalRegion].champions;
-      const index = champions.findIndex(c => c.name === formData.originalName);
-      if (index !== -1) {
-        champions[index] = updatedChampion;
-      }
-    }
-    
-    // Add to new location
-    if (formData.originalRegion !== newRegion || formData.originalName !== newName) {
-      if (!baseData.regions[newRegion].champions) {
-        baseData.regions[newRegion].champions = [];
-      }
-      baseData.regions[newRegion].champions.push(updatedChampion);
-    }
-    
-    // Update customChampions if it's a custom champion
-    if (champion.source === 'custom') {
-      updatedChampion.source = 'custom';
-      if (!appState.customChampions[newRegion]) {
-        appState.customChampions[newRegion] = [];
-      }
-      appState.customChampions[newRegion].push(updatedChampion);
-    } else {
-      // Mark as modified if it's a base champion being edited
-        updatedChampion.source = 'modified';
-        if (!appState.customChampions[newRegion]) {
-          appState.customChampions[newRegion] = [];
-        }
-        appState.customChampions[newRegion].push(updatedChampion);
-      }
+
+        upsertChampionInBaseData(baseData, newRegion, updatedChampion);
+        upsertChampionInAppState(appState, newRegion, updatedChampion);
       
       applyComputedRegionTotals(baseData);
       // Save state

@@ -7,14 +7,17 @@ import { Champion as PoCChampions } from '../../data/Champion.js';
 import { Region as PoCRegions } from '../../data/Region.js';
 import { Cost as PoCCosts } from '../../data/Cost.js';
 import { Stars as PoCStars } from '../../data/Stars.js';
+import {
+    buildMainAppChampion,
+    getChampionResourceTemplate,
+    getRegionStarsMax,
+    mapPoCRegionNameToAppRegion,
+    upsertChampionInAppState,
+    upsertChampionInBaseData
+} from '../championState.js';
 
 export function AddChampionPage(appState, baseData, updateState) {
     const regionNames = Object.keys(baseData.regions).sort();
-    const baseRegionSet = new Set(regionNames);
-    const regionAlias = {
-        "Shadow Isles": regionNames.find(name => name.toLowerCase().includes("obscures")) || "",
-        "Spirit World": ""
-    };
     const pocRegionById = new Map(PoCRegions.map(region => [region.Region_ID, region.Region_Name]));
     const pocCostById = new Map(PoCCosts.map(cost => [cost.Cost_ID, cost.Cost_Value]));
     const pocStarsById = new Map(PoCStars.map(star => [star.Stars_ID, star.Stars_Value]));
@@ -24,6 +27,7 @@ export function AddChampionPage(appState, baseData, updateState) {
         .sort((a, b) => a.Champion_Name.localeCompare(b.Champion_Name));
     const pocChampionById = new Map(pocChampions.map(champion => [champion.Champion_ID, champion]));
     let pocRegionFilter = 'all';
+    const defaultResources = getChampionResourceTemplate('');
     
     // Form state with requested default tier values
     let formData = {
@@ -31,22 +35,19 @@ export function AddChampionPage(appState, baseData, updateState) {
         name: '',
         cost: 0,
         stars_current: 3,
-        stars_max: 6,
+        stars_max: getRegionStarsMax(''),
         poc: 1,
-        nova_crystal: 0,
-        // Star Crystal defaults
-        star_crystal_tier1: 10,
-        star_crystal_tier2: 40,
-        // Gemstone defaults (palier)
-        gemstone_tier1: 150,
-        gemstone_tier2: 250,
-        gemstone_tier3: 250,
-        gemstone_tier4: 350,
-        // Wild Shards defaults
-        wild_shards_tier1: 200,
-        wild_shards_tier2: 60,
-        wild_shards_tier3: 80,
-        wild_shards_tier4: 100
+        nova_crystal: defaultResources.nova_crystal,
+        star_crystal_tier1: defaultResources.star_crystal_tiers[0] || 0,
+        star_crystal_tier2: defaultResources.star_crystal_tiers[1] || 0,
+        gemstone_tier1: defaultResources.gemstone_tiers[0] || 0,
+        gemstone_tier2: defaultResources.gemstone_tiers[1] || 0,
+        gemstone_tier3: defaultResources.gemstone_tiers[2] || 0,
+        gemstone_tier4: defaultResources.gemstone_tiers[3] || 0,
+        wild_shards_tier1: defaultResources.wild_shards_tiers[0] || 0,
+        wild_shards_tier2: defaultResources.wild_shards_tiers[1] || 0,
+        wild_shards_tier3: defaultResources.wild_shards_tiers[2] || 0,
+        wild_shards_tier4: defaultResources.wild_shards_tiers[3] || 0
     };
     
     function handleSubmit() {
@@ -72,11 +73,6 @@ export function AddChampionPage(appState, baseData, updateState) {
             }
         }
         
-        // Add champion to base data
-        if (!baseData.regions[formData.region].champions) {
-            baseData.regions[formData.region].champions = [];
-        }
-        
         const gemstoneTiers = [
             formData.gemstone_tier1,
             formData.gemstone_tier2,
@@ -99,11 +95,12 @@ export function AddChampionPage(appState, baseData, updateState) {
         ];
         const wildShardsTotal = wildShardsTiers.reduce((sum, tier) => sum + tier, 0);
         
-        const newChampion = {
+        const newChampion = buildMainAppChampion({
             name: formData.name.trim(),
             cost: formData.cost,
-            poc: formData.poc,
             stars: formData.stars_current,
+            poc: formData.poc,
+            regionName: formData.region,
             source: 'custom',
             resources: {
                 nova_crystal: formData.nova_crystal,
@@ -114,19 +111,12 @@ export function AddChampionPage(appState, baseData, updateState) {
                 wild_shards_tiers: wildShardsTiers,
                 wild_shards_total: wildShardsTotal
             }
-        };
+        });
         
-        baseData.regions[formData.region].champions.push(newChampion);
+        upsertChampionInBaseData(baseData, formData.region, newChampion);
         applyComputedRegionTotals(baseData);
         
-        // Save to appState for persistence
-        if (!appState.customChampions) {
-            appState.customChampions = {};
-        }
-        if (!appState.customChampions[formData.region]) {
-            appState.customChampions[formData.region] = [];
-        }
-        appState.customChampions[formData.region].push(newChampion);
+        upsertChampionInAppState(appState, formData.region, newChampion);
         
         // Save and redirect
         updateState(appState);
@@ -138,6 +128,10 @@ export function AddChampionPage(appState, baseData, updateState) {
         className: 'form-control',
         onChange: (e) => {
             formData.region = e.target.value;
+            formData.stars_max = getRegionStarsMax(formData.region);
+            if (starsMaxInput) {
+                starsMaxInput.value = String(formData.stars_max);
+            }
         }
     }, [
         createElement('option', { value: '', selected: !formData.region }, ['Région']),
@@ -151,9 +145,7 @@ export function AddChampionPage(appState, baseData, updateState) {
     
     function getMappedRegionName(champion) {
         const regionName = pocRegionById.get(champion.Region_ID) || '';
-        if (!regionName) return '';
-        if (baseRegionSet.has(regionName)) return regionName;
-        return regionAlias[regionName] || '';
+        return mapPoCRegionNameToAppRegion(regionName, regionNames);
     }
 
     function populateChampionOptions(selectEl) {
@@ -204,10 +196,12 @@ export function AddChampionPage(appState, baseData, updateState) {
             formData.poc = selected.POC ? 1 : 0;
 
             formData.region = getMappedRegionName(selected);
+            formData.stars_max = getRegionStarsMax(formData.region);
 
             if (costInputEl) costInputEl.value = String(formData.cost);
             if (pocInputEl) pocInputEl.value = String(formData.poc);
             if (starsCurrentInputEl) starsCurrentInputEl.value = String(formData.stars_current);
+            if (starsMaxInput) starsMaxInput.value = String(formData.stars_max);
             if (regionSelect) regionSelect.value = formData.region;
         }
     }, [

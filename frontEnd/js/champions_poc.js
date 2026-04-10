@@ -13,6 +13,11 @@ import {
   setChampionOverride,
   upsertCustomChampion
 } from "./pocSharedState.js";
+import {
+  buildMainAppChampion,
+  mapPoCRegionNameToAppRegion,
+  syncChampionToMainApp
+} from "./championState.js";
 
 const toNum = (v) => Number(v) || 0;
 const getLevelClass = (levelValue) => {
@@ -393,6 +398,10 @@ function getChampionRegionName(champion) {
   return Region.find(region => region.Region_ID === champion.Region_ID)?.Region_Name || "";
 }
 
+function getChampionMainAppRegionName(champion) {
+  return mapPoCRegionNameToAppRegion(getChampionRegionName(champion));
+}
+
 function getChampionCostValue(champion) {
   return Number(Cost.find(cost => cost.Cost_ID === champion.Cost_ID)?.Cost_Value) || 0;
 }
@@ -417,6 +426,25 @@ function getChampionRelicNames(champion) {
   return (Array.isArray(champion.AllRelics) ? champion.AllRelics : [])
     .map((relicId) => findRelicById(relicId)?.Relic_Name || "")
     .filter(Boolean);
+}
+
+function syncChampionIntoMainAppIfNeeded(champion) {
+  const regionName = getChampionMainAppRegionName(champion);
+  if (!regionName) return;
+
+  const nextChampion = buildMainAppChampion({
+    name: champion.Champion_Name,
+    cost: getChampionCostValue(champion),
+    stars: getChampionStarsValue(champion),
+    poc: champion.POC ? 1 : 0,
+    regionName
+  });
+
+  void syncChampionToMainApp({
+    regionName,
+    champion: nextChampion,
+    onlyIfMissing: true
+  });
 }
 
 function championMatchesSearch(champion) {
@@ -1072,6 +1100,10 @@ if (addChampionSubmitBtn) {
     upsertLocalCustomChampion(nextChampion);
     upsertCustomChampion(nextChampion);
 
+    if (nextChampion.POC) {
+      syncChampionIntoMainAppIfNeeded(nextChampion);
+    }
+
     if (addChampionPanel) addChampionPanel.style.display = "none";
     renderTable();
   });
@@ -1149,6 +1181,14 @@ tbody.addEventListener("change", (event) => {
   overrides[champId] = nextOverride;
 
   setChampionOverride(champId, nextOverride);
+
+  if (field === "POC" && nextOverride.POC) {
+    syncChampionIntoMainAppIfNeeded({
+      ...current,
+      ...nextOverride
+    });
+  }
+
   renderTable();
 });
 
