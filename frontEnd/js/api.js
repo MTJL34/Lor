@@ -2,6 +2,7 @@ import { FORCED_API_BASE } from './runtimeConfig.js';
 
 const API_TIMEOUT_MS = 10000;
 const DEFAULT_API_BASE = 'http://localhost:3000/api';
+const API_BASE_STORAGE_KEY = 'lor_api_base';
 
 let warnShown = false;
 let resolvedApiBase = '';
@@ -47,7 +48,7 @@ function detectApiBases() {
 
   if (typeof window !== 'undefined') {
     try {
-      const fromLocalStorage = window.localStorage.getItem('lor_api_base');
+      const fromLocalStorage = window.localStorage.getItem(API_BASE_STORAGE_KEY);
       if (fromLocalStorage) {
         candidates.push(fromLocalStorage);
       }
@@ -79,14 +80,13 @@ function detectApiBases() {
   return uniqApiBases(candidates);
 }
 
-const API_BASES = detectApiBases();
-
 function getApiBasesToTry() {
+  const detectedApiBases = detectApiBases();
   if (!resolvedApiBase) {
-    return API_BASES;
+    return detectedApiBases;
   }
 
-  return uniqApiBases([resolvedApiBase, ...API_BASES]);
+  return uniqApiBases([resolvedApiBase, ...detectedApiBases]);
 }
 
 async function requestOnce(apiBase, path, options = {}) {
@@ -169,7 +169,65 @@ function logApiWarningOnce(error, context) {
 }
 
 export function getApiBase() {
-  return resolvedApiBase || API_BASES[0] || DEFAULT_API_BASE;
+  return resolvedApiBase || detectApiBases()[0] || DEFAULT_API_BASE;
+}
+
+export function getPreferredApiBase() {
+  if (normalizeApiBase(FORCED_API_BASE)) {
+    return normalizeApiBase(FORCED_API_BASE);
+  }
+
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  try {
+    return normalizeApiBase(window.localStorage.getItem(API_BASE_STORAGE_KEY));
+  } catch (_) {
+    return '';
+  }
+}
+
+export function setPreferredApiBase(apiBase) {
+  const normalizedApiBase = normalizeApiBase(apiBase);
+
+  if (normalizeApiBase(FORCED_API_BASE)) {
+    return normalizeApiBase(FORCED_API_BASE);
+  }
+
+  if (typeof window === 'undefined') {
+    resolvedApiBase = normalizedApiBase;
+    return normalizedApiBase;
+  }
+
+  try {
+    if (normalizedApiBase) {
+      window.localStorage.setItem(API_BASE_STORAGE_KEY, normalizedApiBase);
+    } else {
+      window.localStorage.removeItem(API_BASE_STORAGE_KEY);
+    }
+  } catch (_) {
+    // Ignore localStorage failures and still try to use the in-memory value.
+  }
+
+  resolvedApiBase = normalizedApiBase;
+  warnShown = false;
+  return normalizedApiBase;
+}
+
+export function clearPreferredApiBase() {
+  return setPreferredApiBase('');
+}
+
+export async function probeApiBase(apiBase) {
+  const normalizedApiBase = normalizeApiBase(apiBase);
+
+  if (!normalizedApiBase) {
+    throw new Error('API base vide');
+  }
+
+  const response = await requestOnce(normalizedApiBase, '/site-data');
+  return response && response.data ? response.data : null;
 }
 
 export async function fetchSiteDataFromApi() {

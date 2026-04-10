@@ -1,0 +1,71 @@
+Instructions pour prendre l'autre PC comme source de verite
+
+Objectif
+
+Tu veux que l'autre PC soit la reference.
+Ce PC doit se recaler sur les donnees de l'autre PC.
+Ensuite, les deux PC doivent utiliser le backend de l'autre PC pour rester synchronises.
+
+Avant de commencer
+
+1. Mets cette version recente du projet sur les deux PC.
+2. Verifie que le backend tourne bien sur l'autre PC.
+3. Garde l'autre PC allume pendant la recuperation et pendant la synchro.
+
+Partie 1 - Recuperer les donnees de l'autre PC
+
+Sur l'autre PC :
+
+1. Ouvre la page "Export / Import".
+2. Dans la section "Backup Complet", clique sur "Telecharger le backup".
+3. Recupere le fichier JSON telecharge.
+
+Sur ce PC :
+
+1. Ouvre la page "Export / Import".
+2. Dans la section "Import Backup", importe le fichier JSON venant de l'autre PC.
+3. Si l'application propose aussi d'appliquer une URL de backend partagee, accepte.
+
+Important :
+
+- N'importe pas le backup de ce PC sur l'autre PC.
+- Le backup de l'autre PC doit etre considere comme la bonne version.
+
+Partie 2 - Faire de l'autre PC la source de verite pour la suite
+
+1. Recupere l'IP ou l'URL de l'autre PC.
+2. Construis l'URL API de l'autre PC, par exemple :
+   http://IP_DE_L_AUTRE_PC:3000/api
+
+Sur l'autre PC :
+
+1. Ouvre "Export / Import".
+2. Dans "Backend Partage", saisis l'URL de son API.
+3. Clique sur "Tester".
+4. Si le test est bon, clique sur "Enregistrer".
+
+Sur ce PC :
+
+1. Ouvre "Export / Import".
+2. Dans "Backend Partage", saisis exactement la meme URL.
+3. Clique sur "Tester".
+4. Si le test est bon, clique sur "Enregistrer".
+
+Resultat attendu
+
+- L'autre PC devient la source de verite.
+- Ce PC se synchronise avec lui.
+- Les prochaines modifications passent par le backend de l'autre PC.
+
+Conseils utiles
+
+- Si le test de connexion echoue, verifie le pare-feu, l'IP et que le port 3000 est accessible.
+- Si l'autre PC est eteint, la synchro ne fonctionnera plus.
+- Le backup complet est utile comme filet de securite meme si la synchro est activee.
+
+Resume tres court
+
+1. Exporter le backup sur l'autre PC.
+2. Importer ce backup sur ce PC.
+3. Configurer les deux PC avec l'URL API de l'autre PC.
+4. Tester puis enregistrer.

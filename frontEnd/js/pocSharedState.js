@@ -304,6 +304,32 @@ export async function initializePoCSharedState() {
   return state.initPromise;
 }
 
+export function getPoCDataSnapshot() {
+  return buildPoCDataSnapshot(getSharedState());
+}
+
+export function replacePoCData(pocData, options = {}) {
+  const state = getSharedState();
+  const normalizedPoCData = {
+    customRelics: Array.isArray(pocData?.customRelics)
+      ? pocData.customRelics.map(cloneRelic).filter(isStoredRelic)
+      : [],
+    customChampions: Array.isArray(pocData?.customChampions)
+      ? pocData.customChampions.map(cloneChampion).filter(isStoredChampion)
+      : [],
+    championOverrides: cloneChampionOverrides(pocData?.championOverrides || {})
+  };
+
+  applyPoCDataToState(state, normalizedPoCData);
+  persistLocalPoCData(normalizedPoCData);
+
+  if (options.syncRemote !== false) {
+    scheduleRemoteSync();
+  }
+
+  return buildPoCDataSnapshot(state);
+}
+
 export function getCustomRelics() {
   return getSharedState().customRelics
     .map(cloneRelic)
