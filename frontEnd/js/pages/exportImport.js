@@ -78,26 +78,7 @@ function normalizeImportedBackup(imported) {
     throw new Error('Format invalide: backup complet ou appState attendu');
 }
 
-export function ExportImportPage(appState, baseData, updateState) {
-    function buildUpdatedSiteData() {
-        const nextSiteData = deepClone(baseData);
-        const inventoryByRegion = appState?.inventoryByRegion || {};
-
-        for (const [regionName, regionBase] of Object.entries(nextSiteData.regions || {})) {
-            const currentInv = inventoryByRegion[regionName] || {};
-            regionBase.inventory_default = {
-                ...(regionBase.inventory_default || {}),
-                ...currentInv
-            };
-        }
-
-        return nextSiteData;
-    }
-
-    function buildUpdatedSiteDataString() {
-        return JSON.stringify(buildUpdatedSiteData(), null, 2);
-    }
-
+export function ExportImportPage(appState, _baseData, updateState) {
     function buildCompleteBackup() {
         return {
             format: 'lor-backup',
@@ -151,7 +132,6 @@ export function ExportImportPage(appState, baseData, updateState) {
     }, ['']);
 
     const backupPreEl = createPreBlock('');
-    const siteDataPreEl = createPreBlock(buildUpdatedSiteDataString());
 
     function refreshApiStatus(message = '') {
         const preferredApiBase = getPreferredApiBase();
@@ -180,14 +160,6 @@ export function ExportImportPage(appState, baseData, updateState) {
 
     const handleDownloadBackup = () => {
         makeDownload(`lor-backup-${buildTimestampFileSuffix()}.json`, buildCompleteBackupString());
-    };
-
-    const handleCopySiteData = () => {
-        copyText(buildUpdatedSiteDataString(), 'site_data.json copie dans le presse-papier');
-    };
-
-    const handleDownloadSiteData = () => {
-        makeDownload('site_data.json', buildUpdatedSiteDataString());
     };
 
     const handleSaveApiBase = () => {
@@ -328,7 +300,7 @@ export function ExportImportPage(appState, baseData, updateState) {
 
         Card('Backup Complet', [
             Alert(
-                'Ce backup contient l inventaire principal, les champions personalises et les donnees PoC locales pour recuperer un autre PC.',
+                'Utilisez ce backup pour recuperer toutes vos donnees utilisateur sur un autre PC: inventaire principal, champions personnalises, donnees PoC locales et URL de backend partagee.',
                 'info'
             ),
             backupPreEl
@@ -337,28 +309,17 @@ export function ExportImportPage(appState, baseData, updateState) {
             Button('Telecharger le backup', handleDownloadBackup, 'secondary')
         ]),
 
-        Card('Export site_data.json', [
-            Alert(
-                'Exporte un site_data.json avec vos currencies de regions actuelles dans inventory_default.',
-                'info'
-            ),
-            siteDataPreEl
-        ], [
-            Button('Copier site_data.json', handleCopySiteData, 'secondary'),
-            Button('Telecharger site_data.json', handleDownloadSiteData, 'secondary')
-        ]),
-
         Card('Import Backup', [
             Alert(
-                'Importez ici un backup complet depuis un autre PC. Le backup peut aussi proposer d appliquer la meme URL de backend partage.',
+                'Importez ici un backup complet depuis un autre PC. Le backup peut aussi proposer d appliquer la meme URL de backend partage. Le transfert entre PC passe par ce backup, pas par site_data.json.',
                 'warning'
             ),
             createElement('div', { className: 'form-group' }, [
-                createElement('label', { className: 'form-label' }, ['Fichier JSON']),
+                createElement('label', { className: 'form-label' }, ['Fichier backup JSON']),
                 fileInput
             ]),
             createElement('div', { className: 'form-group' }, [
-                createElement('label', { className: 'form-label' }, ['Ou collez le JSON']),
+                createElement('label', { className: 'form-label' }, ['Ou collez le backup JSON']),
                 importTextarea
             ])
         ], [

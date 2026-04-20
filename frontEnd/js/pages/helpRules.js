@@ -54,8 +54,8 @@ export function HelpRulesPage() {
             createElement('ul', { style: { paddingLeft: '1.5rem', color: 'var(--text-secondary)' } }, [
                 createElement('li', {}, ['Vos données sont sauvegardées automatiquement dans le navigateur à chaque modification']),
                 createElement('li', {}, ['Si l\'API est disponible, elles sont aussi synchronisées avec le backend']),
-                createElement('li', {}, ['Utilisez Export/Import pour faire des backups ou transférer vos données']),
-                createElement('li', {}, ['Le JSON exporté contient votre inventaire + les calculs']),
+                createElement('li', {}, ['Utilisez Export/Import pour faire un backup complet ou transférer vos données']),
+                createElement('li', {}, ['Le backup exporté contient l inventaire principal, les champions personnalisés et les données PoC locales']),
                 createElement('li', {}, ['En cas d\'API indisponible, l\'application garde un fallback local'])
             ])
         ]),

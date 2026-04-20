@@ -95,8 +95,8 @@ Liste filtrée par région avec :
 
 ### 5. Export / Import
 
-- **Export** : Copier ou télécharger votre inventaire en JSON
-- **Import** : Restaurer depuis un JSON sauvegardé
+- **Export** : Copier ou télécharger un backup complet en JSON
+- **Import** : Restaurer depuis un backup JSON sauvegardé
 
 ## ⚗️ Craft Nova Shards → Crystal
 
@@ -111,7 +111,7 @@ Liste filtrée par région avec :
 - **Automatique** : Vos données sont sauvegardées dans le `localStorage` du navigateur à chaque modification
 - **Synchronisation API** : Si le backend est disponible, l'état de l'application est aussi persisté côté serveur
 - **PoC inclus** : Les modifications faites dans `PoC Champions` et `PoC Reliques` sont persistées elles aussi
-- **Export/Import** : Faites des backups JSON pour transférer entre appareils
+- **Export/Import** : Faites des backups complets JSON pour transférer entre appareils
 
 ## 🔧 Personnalisation
 
