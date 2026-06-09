@@ -26,6 +26,15 @@ function normalizeName(name) {
   return String(name || '').trim().toLowerCase();
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function findPoCChampionByName(name) {
   const normalizedName = normalizeName(name);
   return [...PoCChampions, ...getCustomChampions()].find(
@@ -190,7 +199,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
               <div>
                 <label style="display: block; margin-bottom: 5px; font-weight: 500;">Nom</label>
-                <input type="text" id="name" value="${championName}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required />
+                <input type="text" id="name" value="${escapeHtml(championName)}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required />
               </div>
               <div>
                 <label style="display: block; margin-bottom: 5px; font-weight: 500;">Coût</label>
@@ -199,7 +208,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
               <div>
                 <label style="display: block; margin-bottom: 5px; font-weight: 500;">Région</label>
                 <select id="region" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                  ${Object.keys(baseData.regions).map(r => `<option value="${r}" ${r === region ? 'selected' : ''}>${formatRegionName(r)}</option>`).join('')}
+                  ${Object.keys(baseData.regions).map(r => `<option value="${escapeHtml(r)}" ${r === region ? 'selected' : ''}>${escapeHtml(formatRegionName(r))}</option>`).join('')}
                 </select>
               </div>
               <div>
