@@ -3,18 +3,91 @@
 import { createElement, formatRegionName, getRegionStarsMax, createRegionIcon, createResourceIcon } from '../ui.js';
 import { applyComputedRegionTotals } from '../calc.js';
 import { PageHeader, Card, Button } from '../components/layout.js';
+import { Champion as PoCChampions } from '../../data/Champion.js';
+import { Cost } from '../../data/Cost.js';
+import { Region as PoCRegions } from '../../data/Region.js';
+import { Stars } from '../../data/Stars.js';
+import {
+    buildMainAppChampion,
+    mapPoCRegionNameToAppRegion,
+    upsertChampionInAppState,
+    upsertChampionInBaseData
+} from '../championState.js';
+import {
+    getChampionOverrides,
+    getCustomChampions,
+    initializePoCSharedState
+} from '../pocSharedState.js';
+
+function getPoCRegionName(champion) {
+    return PoCRegions.find((region) => Number(region.Region_ID) === Number(champion?.Region_ID))?.Region_Name || '';
+}
+
+function getPoCCostValue(champion) {
+    return Number(Cost.find((cost) => Number(cost.Cost_ID) === Number(champion?.Cost_ID))?.Cost_Value) || 0;
+}
+
+function getPoCStarsValue(champion) {
+    return Number(Stars.find((star) => Number(star.Stars_ID) === Number(champion?.Stars_ID))?.Stars_Value) || 0;
+}
+
+function syncPoCChampionsIntoVisibleState(baseData, appState) {
+    if (!baseData?.regions || !appState) {
+        return;
+    }
+
+    const availableRegionNames = Object.keys(baseData.regions || {});
+    const overrides = getChampionOverrides();
+    const customChampions = getCustomChampions();
+    const allPoCChampions = [...PoCChampions, ...customChampions];
+
+    for (const champion of allPoCChampions) {
+        const effectiveChampion = {
+            ...champion,
+            ...(overrides[Number(champion.Champion_ID)] || {})
+        };
+
+        if (!effectiveChampion?.Champion_Name) {
+            continue;
+        }
+
+        const regionName = mapPoCRegionNameToAppRegion(getPoCRegionName(effectiveChampion), availableRegionNames);
+        if (!regionName) {
+            continue;
+        }
+
+        const nextChampion = buildMainAppChampion({
+            name: effectiveChampion.Champion_Name,
+            cost: getPoCCostValue(effectiveChampion),
+            stars: getPoCStarsValue(effectiveChampion),
+            poc: effectiveChampion.POC ? 1 : 0,
+            regionName,
+            source: 'custom'
+        });
+
+        upsertChampionInAppState(appState, regionName, nextChampion);
+        upsertChampionInBaseData(baseData, regionName, nextChampion);
+    }
+
+    applyComputedRegionTotals(baseData);
+}
 
 export function ChampionsPage(appState, baseData, updateState) {
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
 
     if (baseData?.regions) {
         const regionEntries = Object.entries(baseData.regions);
-        for (const [regionName, regionData] of regionEntries) {
+        for (const [, regionData] of regionEntries) {
             if (!Array.isArray(regionData?.champions)) {
                 regionData.champions = [];
             }
         }
     }
+
+    void initializePoCSharedState().then(() => {
+        syncPoCChampionsIntoVisibleState(baseData, appState);
+        updateState?.(appState);
+    });
     const filterRegion = urlParams.get('region');
     
     // Order regions as specified
@@ -80,9 +153,9 @@ export function ChampionsPage(appState, baseData, updateState) {
         onChange: (e) => {
             const val = e.target.value;
             if (val === 'all') {
-                window.location.hash = '#/champions';
+                window.location.hash = '#/constellation';
             } else {
-                window.location.hash = `#/champions?region=${encodeURIComponent(val)}`;
+                window.location.hash = `#/constellation?region=${encodeURIComponent(val)}`;
             }
         }
     }, [
@@ -259,7 +332,7 @@ export function ChampionsPage(appState, baseData, updateState) {
     }, 'primary');
     
     const content = createElement('div', {}, [
-        PageHeader('Champions', 'Tous les champions par région'),
+        PageHeader('Constellation', 'Tous les champions par région'),
         Card('Filtres', [
             createElement('div', { className: 'form-group' }, [
                 createElement('label', { className: 'form-label' }, ['Région']),

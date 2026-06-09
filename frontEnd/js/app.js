@@ -274,27 +274,27 @@ async function syncPoCChampionsIntoMainApp() {
 }
 
 function route() {
-    const hash = window.location.hash || '#/poc-champions';
+    const hash = window.location.hash || '#/champions';
     const [path, queryString] = hash.substring(2).split('?');
     const parts = path.split('/');
     
     console.log('Routing to:', path, 'parts:', parts);
     
     let page = null;
-    let activeNav = 'poc-champions';
+    let activeNav = 'champions';
 
     if (globalState.baseData) {
         applyComputedRegionTotals(globalState.baseData);
     }
     
     try {
-        if (path === '' || path === 'poc-champions') {
+        if (path === '' || path === 'champions' || path === 'poc-champions') {
             page = PoCEmbedPage({
-                title: 'PoC Champions',
-                subtitle: 'Gestion des champions PoC dans la meme application',
+                title: 'Champions',
+                subtitle: 'Gestion des champions PoC dans la même application',
                 src: 'pages/poc_champions_embed.html'
             });
-            activeNav = 'poc-champions';
+            activeNav = 'champions';
         } else if (path === 'dashboard') {
             page = DashboardPage(globalState.appState, globalState.baseData);
             activeNav = 'dashboard';
@@ -317,21 +317,21 @@ function route() {
                 saveState(globalState.appState);
                 route();
             });
-            activeNav = 'champions';
-        } else if (path === 'champions') {
+            activeNav = 'constellation';
+        } else if (path === 'constellation') {
             page = ChampionsPage(globalState.appState, globalState.baseData, (newState) => {
                 globalState.appState = newState;
                 saveState(globalState.appState);
                 route();
             });
-            activeNav = 'champions';
+            activeNav = 'constellation';
         } else if (path === 'add-champion') {
             page = AddChampionPage(globalState.appState, globalState.baseData, (newState) => {
                 globalState.appState = newState;
                 saveState(globalState.appState);
                 route();
             });
-            activeNav = 'champions';
+            activeNav = 'constellation';
         } else if (parts[0] === 'edit-champion' && parts[1] && parts[2]) {
             const regionName = decodeURIComponent(parts[1]);
             const championName = decodeURIComponent(parts[2]);
@@ -340,7 +340,7 @@ function route() {
                 saveState(globalState.appState);
                 route();
             });
-            activeNav = 'champions';
+            activeNav = 'constellation';
         } else if (path === 'export') {
             page = ExportImportPage(globalState.appState, globalState.baseData, (newState) => {
                 globalState.appState = newState;

@@ -99,7 +99,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
   if (!champion) {
     const errorMessage = createElement('div', { style: { padding: '20px' } }, [
       createElement('p', {}, [`Le champion "${championName}" n'a pas été trouvé dans la région ${region}.`]),
-      createElement('a', { href: '#/champions', className: 'button' }, ['Retour à la liste'])
+      createElement('a', { href: '#/constellation', className: 'button' }, ['Retour à la liste'])
     ]);
     
     return createElement('div', {}, [
@@ -306,7 +306,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
         
         <div style="display: flex; gap: 10px; margin-top: 20px;">
           <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-          <button type="button" class="btn btn-secondary" onclick="window.location.hash = '#/champions'">Annuler</button>
+          <button type="button" class="btn btn-secondary" onclick="window.location.hash = '#/constellation'">Annuler</button>
         </div>
       </form>
     </div>
@@ -514,7 +514,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
       updateState(appState);
       
       alert(`Champion "${newName}" mis à jour avec succès!`);
-      window.location.hash = '#/champions';
+      window.location.hash = '#/constellation';
     });
     }
   }, 0);

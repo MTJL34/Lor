@@ -121,7 +121,7 @@ export function AddChampionPage(appState, baseData, updateState) {
         // Save and redirect
         updateState(appState);
         alert(`Champion "${formData.name}" ajouté à ${formData.region} !`);
-        window.location.hash = '#/champions';
+        window.location.hash = '#/constellation';
     }
     
     const regionSelect = createElement('select', {
@@ -326,7 +326,7 @@ export function AddChampionPage(appState, baseData, updateState) {
     
     const submitBtn = Button('Ajouter le champion', handleSubmit, 'primary');
     const cancelBtn = Button('Annuler', () => {
-        window.location.hash = '#/champions';
+        window.location.hash = '#/constellation';
     }, 'secondary');
     
     const content = createElement('div', {}, [
