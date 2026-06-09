@@ -329,21 +329,37 @@ export function resolveChampionForEdit(appState, baseData, regionName, championN
     return findChampionByName(baseData?.regions?.[regionName]?.champions, championName);
 }
 
-export async function syncChampionToMainApp({ regionName, champion, onlyIfMissing = false }) {
+export async function syncChampionToMainApp({
+    regionName,
+    champion,
+    onlyIfMissing = false,
+    originalRegionName = '',
+    originalChampionName = ''
+}) {
     if (!regionName || !champion?.name) {
         return false;
     }
 
     const bridge = getMainAppBridge();
     if (bridge && typeof bridge.upsertChampion === 'function') {
-        return Boolean(bridge.upsertChampion(regionName, champion, { onlyIfMissing }));
+        return Boolean(bridge.upsertChampion(regionName, champion, {
+            onlyIfMissing,
+            originalRegionName,
+            originalChampionName
+        }));
     }
 
     const state = await loadState() || createEmptyAppState();
-    const existingChampion = findChampionByName(state.customChampions?.[regionName], champion.name);
+    const lookupRegionName = originalRegionName || regionName;
+    const lookupChampionName = originalChampionName || champion.name;
+    const existingChampion = findChampionByName(state.customChampions?.[lookupRegionName], lookupChampionName);
 
     if (onlyIfMissing && existingChampion) {
         return false;
+    }
+
+    if (lookupRegionName !== regionName || normalizeChampionName(lookupChampionName) !== normalizeChampionName(champion.name)) {
+        removeChampionFromAppState(state, lookupRegionName, lookupChampionName);
     }
 
     upsertChampionInAppState(state, regionName, champion);

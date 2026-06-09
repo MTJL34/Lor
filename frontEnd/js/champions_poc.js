@@ -268,6 +268,15 @@ function normalizeSearchText(value) {
     .trim();
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function sortChampionsByName(champions) {
   return [...champions].sort(compareChampionNames);
 }
@@ -444,6 +453,32 @@ function syncChampionIntoMainAppIfNeeded(champion) {
     regionName,
     champion: nextChampion,
     onlyIfMissing: true
+  });
+}
+
+function syncChampionIntoMainApp(champion, originalChampion = null) {
+  const regionName = getChampionMainAppRegionName(champion);
+  if (!regionName) return;
+
+  const originalRegionName = originalChampion
+    ? mapPoCRegionNameToAppRegion(getChampionRegionName(originalChampion))
+    : regionName;
+  const originalChampionName = originalChampion?.Champion_Name || champion.Champion_Name;
+
+  const nextChampion = buildMainAppChampion({
+    name: champion.Champion_Name,
+    cost: getChampionCostValue(champion),
+    stars: getChampionStarsValue(champion),
+    poc: champion.POC ? 1 : 0,
+    regionName,
+    source: "modified"
+  });
+
+  void syncChampionToMainApp({
+    regionName,
+    champion: nextChampion,
+    originalRegionName,
+    originalChampionName
   });
 }
 
@@ -803,7 +838,18 @@ function renderTable() {
 
     tr.innerHTML = `
       <td data-label="Nom" class="champion-name-cell">
-        <span class="champion-name-text">${champion.Champion_Name}</span>
+        ${isEditing ? `
+          <input
+            type="text"
+            class="stat-input champion-name-input"
+            data-champion-id="${champion.Champion_ID}"
+            data-field="Champion_Name"
+            value="${escapeHtml(champion.Champion_Name)}"
+            required
+          />
+        ` : `
+          <span class="champion-name-text">${escapeHtml(champion.Champion_Name)}</span>
+        `}
       </td>
       <td data-label="Cout">
         ${isEditing ? `
@@ -1164,8 +1210,17 @@ tbody.addEventListener("change", (event) => {
   if (!sourceChampion) return;
   const current = getEffectiveChampion(sourceChampion);
   const nextOverride = { ...(overrides[champId] || {}) };
+  const originalChampion = { ...current };
 
-  if (field === "POC") {
+  if (field === "Champion_Name") {
+    const nextName = String(target.value || "").trim();
+    if (!nextName) {
+      target.value = current.Champion_Name || "";
+      alert("Le nom du champion est obligatoire.");
+      return;
+    }
+    nextOverride.Champion_Name = nextName;
+  } else if (field === "POC") {
     nextOverride.POC = Boolean(target.checked);
   } else if (field === "AllRelics") {
     const slotIndex = Number(target?.dataset?.index);
@@ -1182,11 +1237,13 @@ tbody.addEventListener("change", (event) => {
 
   setChampionOverride(champId, nextOverride);
 
-  if (field === "POC" && nextOverride.POC) {
-    syncChampionIntoMainAppIfNeeded({
-      ...current,
-      ...nextOverride
-    });
+  const nextChampion = {
+    ...current,
+    ...nextOverride
+  };
+
+  if ((nextChampion.POC || field === "POC") && field !== "AllRelics" && field !== "Level_ID" && field !== "Constellation_Number_ID") {
+    syncChampionIntoMainApp(nextChampion, originalChampion);
   }
 
   renderTable();

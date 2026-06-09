@@ -1,6 +1,16 @@
 import { createElement, formatRegionName } from '../ui.js';
 import { applyComputedRegionTotals } from '../calc.js';
 import { PageHeader, Card, Button } from '../components/layout.js';
+import { Champion as PoCChampions } from '../../data/Champion.js';
+import { Cost } from '../../data/Cost.js';
+import { Region as PoCRegions } from '../../data/Region.js';
+import { Stars } from '../../data/Stars.js';
+import {
+  getChampionOverrides,
+  getCustomChampions,
+  setChampionOverride,
+  upsertCustomChampion
+} from '../pocSharedState.js';
 import {
   buildMainAppChampion,
   getRegionStarsMax,
@@ -11,6 +21,68 @@ import {
   upsertChampionInAppState,
   upsertChampionInBaseData
 } from '../championState.js';
+
+function normalizeName(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
+function findPoCChampionByName(name) {
+  const normalizedName = normalizeName(name);
+  return [...PoCChampions, ...getCustomChampions()].find(
+    champion => normalizeName(champion.Champion_Name) === normalizedName
+  ) || null;
+}
+
+function getPoCRegionId(regionName) {
+  const aliases = {
+    '\u00celes Obscures': 'Shadow Isles'
+  };
+  const pocRegionName = aliases[regionName] || regionName;
+  return PoCRegions.find(region => region.Region_Name === pocRegionName)?.Region_ID || 13;
+}
+
+function getPoCIdByValue(list, idKey, valueKey, value, fallback) {
+  return list.find(item => Number(item[valueKey]) === Number(value))?.[idKey] ?? fallback;
+}
+
+function syncMainChampionToPoC(originalName, updatedChampion, regionName) {
+  const customChampions = getCustomChampions();
+  const allPoCChampions = [...PoCChampions, ...customChampions];
+  const sourceChampion = findPoCChampionByName(originalName) || findPoCChampionByName(updatedChampion.name);
+  const championId = sourceChampion?.Champion_ID || (
+    allPoCChampions.reduce((maxId, champion) => Math.max(maxId, Number(champion.Champion_ID) || 0), 0) + 1
+  );
+
+  const overrides = getChampionOverrides();
+  const nextOverride = {
+    ...(overrides[championId] || {}),
+    Champion_Name: updatedChampion.name,
+    Cost_ID: getPoCIdByValue(Cost, 'Cost_ID', 'Cost_Value', updatedChampion.cost, 0),
+    Region_ID: getPoCRegionId(regionName),
+    Stars_ID: getPoCIdByValue(Stars, 'Stars_ID', 'Stars_Value', updatedChampion.stars, 0),
+    POC: Boolean(updatedChampion.poc)
+  };
+
+  if (!sourceChampion || customChampions.some(champion => champion.Champion_ID === championId)) {
+    upsertCustomChampion({
+      Champion_ID: championId,
+      Champion_Name: updatedChampion.name,
+      Cost_ID: nextOverride.Cost_ID,
+      POC: nextOverride.POC,
+      Champion_Icon: '',
+      Stars_ID: nextOverride.Stars_ID,
+      LOR_Exclusive: false,
+      Constellation_Number_ID: 1,
+      Level_ID: 1,
+      Region_ID: nextOverride.Region_ID,
+      AllRelics: [0, 0, 0],
+      ...(sourceChampion || {}),
+      ...nextOverride
+    });
+  }
+
+  setChampionOverride(championId, nextOverride);
+}
 
 export function EditChampionPage(appState, baseData, region, championName, updateState) {
   const champion = resolveChampionForEdit(appState, baseData, region, championName);
@@ -426,6 +498,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
 
         upsertChampionInBaseData(baseData, newRegion, updatedChampion);
         upsertChampionInAppState(appState, newRegion, updatedChampion);
+        syncMainChampionToPoC(formData.originalName, updatedChampion, newRegion);
       
       applyComputedRegionTotals(baseData);
       // Save state

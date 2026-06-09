@@ -17,6 +17,9 @@ import { PoCEmbedPage } from './pages/pocEmbed.js';
 import { applyComputedRegionTotals } from './calc.js';
 import {
     inferSyncedChampionSource,
+    normalizeChampionName,
+    removeChampionFromAppState,
+    removeChampionFromBaseData,
     resolveChampionForEdit,
     setMainAppBridge,
     upsertChampionInAppState,
@@ -162,15 +165,25 @@ function registerMainAppBridge() {
                 return false;
             }
 
+            const lookupRegionName = options.originalRegionName || regionName;
+            const lookupChampionName = options.originalChampionName || champion.name;
             const existingChampion = resolveChampionForEdit(
                 globalState.appState,
                 globalState.baseData,
-                regionName,
-                champion.name
+                lookupRegionName,
+                lookupChampionName
             );
 
             if (options.onlyIfMissing && existingChampion) {
                 return false;
+            }
+
+            if (
+                lookupRegionName !== regionName
+                || normalizeChampionName(lookupChampionName) !== normalizeChampionName(champion.name)
+            ) {
+                removeChampionFromAppState(globalState.appState, lookupRegionName, lookupChampionName);
+                removeChampionFromBaseData(globalState.baseData, lookupRegionName, lookupChampionName);
             }
 
             const nextChampion = {
