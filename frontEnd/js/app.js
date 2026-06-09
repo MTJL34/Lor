@@ -244,7 +244,7 @@ async function syncPoCChampionsIntoMainApp() {
                 ...(overrides[Number(champion.Champion_ID)] || {})
             };
 
-            if (!effectiveChampion?.Champion_Name || !effectiveChampion?.POC) {
+            if (!effectiveChampion?.Champion_Name) {
                 continue;
             }
 
