@@ -103,7 +103,17 @@ async function loadBaseData() {
             return apiData;
         }
     } catch (e) {
-        console.warn('API site-data unavailable, fallback to local file:', e.message);
+        console.warn('API site-data unavailable, fallback to local data:', e.message);
+    }
+
+    try {
+        const moduleData = await import('../data/site_data.json', { with: { type: 'json' } });
+        if (moduleData?.default) {
+            console.log('📦 Base data loaded from bundled site_data.json module');
+            return moduleData.default;
+        }
+    } catch (e) {
+        console.warn('JSON module fallback unavailable, trying fetch fallback:', e.message);
     }
 
     try {
