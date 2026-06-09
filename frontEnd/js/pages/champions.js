@@ -6,6 +6,15 @@ import { PageHeader, Card, Button } from '../components/layout.js';
 
 export function ChampionsPage(appState, baseData, updateState) {
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+
+    if (baseData?.regions) {
+        const regionEntries = Object.entries(baseData.regions);
+        for (const [regionName, regionData] of regionEntries) {
+            if (!Array.isArray(regionData?.champions)) {
+                regionData.champions = [];
+            }
+        }
+    }
     const filterRegion = urlParams.get('region');
     
     // Order regions as specified
