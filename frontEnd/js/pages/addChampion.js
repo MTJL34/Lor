@@ -25,8 +25,7 @@ export function AddChampionPage(appState, baseData, updateState) {
         .filter(champion => (
             champion
             && champion.Champion_ID
-            && champion.POC
-            && Number(champion.Constellation_Number_ID) > 1
+            && Number(pocCostById.get(champion.Cost_ID)) > 0
         ))
         .slice()
         .sort((a, b) => a.Champion_Name.localeCompare(b.Champion_Name));
@@ -355,7 +354,7 @@ export function AddChampionPage(appState, baseData, updateState) {
                 regionSelect
             ]),
             createElement('div', { className: 'form-group' }, [
-                createElement('label', { className: 'form-label' }, ['Champion (PoC)']),
+                createElement('label', { className: 'form-label' }, ['Champion']),
                 championSelect
             ]),
             iconInput,
@@ -427,6 +426,5 @@ export function AddChampionPage(appState, baseData, updateState) {
     
     return content;
 }
-
 
 
