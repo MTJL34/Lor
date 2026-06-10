@@ -1,6 +1,6 @@
 // Champions page
 
-import { createElement, formatRegionName, getRegionStarsMax, createRegionIcon, createResourceIcon } from '../ui.js';
+import { createElement, formatRegionName, getRegionStarsMax, createRegionIcon, createResourceIcon, createChampionAvatar } from '../ui.js';
 import { applyComputedRegionTotals } from '../calc.js';
 import { PageHeader, Card, Button } from '../components/layout.js';
 import { Champion as PoCChampions } from '../../data/Champion.js';
@@ -193,7 +193,12 @@ export function ChampionsPage(appState, baseData, updateState) {
                     onClick: () => {
                         window.location.hash = `#/champion/${encodeURIComponent(champ.region)}/${encodeURIComponent(champ.name)}`;
                     }
-                }, [champ.name]),
+                }, [
+                    createElement('div', { className: 'champion-name-cell' }, [
+                        createChampionAvatar(champ.name, 40),
+                        createElement('span', { className: 'champion-name-text' }, [champ.name])
+                    ])
+                ]),
                 createElement('td', { className: 'center-cell' }, [String(champ.cost || 0)]),
                 createElement('td', { className: 'center-cell' }, [createRegionIcon(champ.region, 22)]),
                 createElement('td', { className: 'center-cell' }, [

@@ -1,6 +1,6 @@
 // Champion detail page
 
-import { createElement, formatRegionName, getRegionStarsMax } from '../ui.js';
+import { createElement, formatRegionName, getRegionStarsMax, createChampionAvatar } from '../ui.js';
 import { PageHeader, Card, Button, Alert } from '../components/layout.js';
 import { ResourceTable } from '../components/resourceTable.js';
 import { CraftPanel } from '../components/craftPanel.js';
@@ -87,10 +87,15 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
     };
     
     const content = createElement('div', {}, [
-        PageHeader(
-            `⭐ ${champion.name}`,
-            `${formatRegionName(regionName)} - ${champion.stars}/${getRegionStarsMax(regionName)} étoiles - PoC ${champion.poc}`
-        ),
+        createElement('div', { className: 'champion-detail-hero' }, [
+            createChampionAvatar(champion.name, 96),
+            createElement('div', {}, [
+                PageHeader(
+                    `⭐ ${champion.name}`,
+                    `${formatRegionName(regionName)} - ${champion.stars}/${getRegionStarsMax(regionName)} étoiles - PoC ${champion.poc}`
+                )
+            ])
+        ]),
         createElement('div', { style: { marginBottom: '1rem', display: 'flex', gap: '0.5rem' } }, [
             backButton,
             refreshButton

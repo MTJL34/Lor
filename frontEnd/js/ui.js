@@ -117,6 +117,79 @@ export function formatNumber(num) {
     return new Intl.NumberFormat('fr-FR').format(num);
 }
 
+function getChampionInitials(championName) {
+    const trimmed = String(championName || '').trim();
+    if (!trimmed) return '?';
+
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length === 1) {
+        return words[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${words[0][0] || ''}${words[words.length - 1][0] || ''}`.toUpperCase();
+}
+
+function normalizeChampionNameForWiki(championName) {
+    return String(championName || '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/['’]/g, '')
+        .replace(/[^A-Za-z0-9]+/g, '')
+        .trim();
+}
+
+export function getChampionWikiImageUrl(championName, size = 96) {
+    const normalizedName = normalizeChampionNameForWiki(championName);
+    if (!normalizedName) return '';
+
+    const encodedName = encodeURIComponent(normalizedName);
+    return `https://wiki.leagueoflegends.com/en-us/images/thumb/${encodedName}_OriginalCircle.png/${size}px-${encodedName}_OriginalCircle.png`;
+}
+
+export function createChampionAvatar(championName, size = 42) {
+    const avatarUrl = getChampionWikiImageUrl(championName, Math.max(48, size));
+    const initials = getChampionInitials(championName);
+
+    const avatar = createElement('img', {
+        className: 'champion-avatar',
+        alt: championName,
+        title: championName,
+        width: size,
+        height: size,
+        loading: 'lazy',
+        draggable: 'false'
+    });
+
+    const fallback = createElement('div', {
+        className: 'champion-avatar champion-avatar-fallback',
+        style: {
+            width: `${size}px`,
+            height: `${size}px`,
+            display: 'none'
+        }
+    }, [initials]);
+
+    const shell = createElement('div', {
+        className: 'champion-avatar-shell',
+        style: {
+            width: `${size}px`,
+            height: `${size}px`
+        }
+    }, [avatar, fallback]);
+
+    if (avatarUrl) {
+        avatar.addEventListener('error', () => {
+            avatar.style.display = 'none';
+            fallback.style.display = 'flex';
+        });
+        avatar.src = avatarUrl;
+    } else {
+        fallback.style.display = 'flex';
+    }
+
+    return shell;
+}
+
 export function formatRegionName(regionName) {
     const map = {
         'Shadow Isles': '\u00celes Obscures',
