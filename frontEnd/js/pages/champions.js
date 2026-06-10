@@ -84,10 +84,14 @@ export function ChampionsPage(appState, baseData, updateState) {
         }
     }
 
-    void initializePoCSharedState().then(() => {
-        syncPoCChampionsIntoVisibleState(baseData, appState);
-        updateState?.(appState);
-    });
+    syncPoCChampionsIntoVisibleState(baseData, appState);
+    void initializePoCSharedState()
+        .then(() => {
+            syncPoCChampionsIntoVisibleState(baseData, appState);
+        })
+        .catch((error) => {
+            console.warn('[Constellation] PoC shared state refresh failed:', error.message);
+        });
     const filterRegion = urlParams.get('region');
     
     // Order regions as specified
