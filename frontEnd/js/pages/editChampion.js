@@ -67,6 +67,7 @@ function syncMainChampionToPoC(originalName, updatedChampion, regionName) {
     ...(overrides[championId] || {}),
     Champion_Name: updatedChampion.name,
     Cost_ID: getPoCIdByValue(Cost, 'Cost_ID', 'Cost_Value', updatedChampion.cost, 0),
+    Champion_Icon: updatedChampion.icon || '',
     Region_ID: getPoCRegionId(regionName),
     Stars_ID: getPoCIdByValue(Stars, 'Stars_ID', 'Stars_Value', updatedChampion.stars, 0),
     POC: Boolean(updatedChampion.poc)
@@ -78,7 +79,7 @@ function syncMainChampionToPoC(originalName, updatedChampion, regionName) {
       Champion_Name: updatedChampion.name,
       Cost_ID: nextOverride.Cost_ID,
       POC: nextOverride.POC,
-      Champion_Icon: '',
+      Champion_Icon: nextOverride.Champion_Icon,
       Stars_ID: nextOverride.Stars_ID,
       LOR_Exclusive: false,
       Constellation_Number_ID: 1,
@@ -113,6 +114,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
     originalName: championName,
     region: region,
     name: championName,
+    icon: champion.icon || '',
     cost: champion.cost || 0,
     stars_current: champion.stars || 0,
     stars_max: getRegionStarsMax(region),
@@ -210,6 +212,10 @@ export function EditChampionPage(appState, baseData, region, championName, updat
                 <select id="region" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                   ${Object.keys(baseData.regions).map(r => `<option value="${escapeHtml(r)}" ${r === region ? 'selected' : ''}>${escapeHtml(formatRegionName(r))}</option>`).join('')}
                 </select>
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Image (URL optionnelle)</label>
+                <input type="text" id="icon" value="${escapeHtml(formData.icon)}" placeholder="https://..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
               </div>
               <div>
                 <label style="display: block; margin-bottom: 5px; font-weight: 500;">PoC</label>
@@ -486,6 +492,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
           cost: parseInt(container.querySelector('#cost').value) || 0,
           stars: parseInt(container.querySelector('#stars_current').value) || 0,
           poc: parseInt(container.querySelector('#poc').value) || 0,
+          icon: container.querySelector('#icon').value.trim(),
           regionName: newRegion,
           source: champion.source === 'custom' ? 'custom' : 'modified',
           resources: {

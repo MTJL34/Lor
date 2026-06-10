@@ -10,6 +10,7 @@ import { Stars } from '../../data/Stars.js';
 import {
     buildMainAppChampion,
     mapPoCRegionNameToAppRegion,
+    resolveChampionForEdit,
     upsertChampionInAppState,
     upsertChampionInBaseData
 } from '../championState.js';
@@ -56,11 +57,18 @@ function syncPoCChampionsIntoVisibleState(baseData, appState) {
             continue;
         }
 
+        const existingChampion = resolveChampionForEdit(
+            appState,
+            baseData,
+            regionName,
+            effectiveChampion.Champion_Name
+        );
         const nextChampion = buildMainAppChampion({
             name: effectiveChampion.Champion_Name,
             cost: getPoCCostValue(effectiveChampion),
             stars: getPoCStarsValue(effectiveChampion),
             poc: effectiveChampion.POC ? 1 : 0,
+            icon: effectiveChampion.Champion_Icon || existingChampion?.icon || '',
             regionName,
             source: 'custom'
         });
@@ -199,7 +207,7 @@ export function ChampionsPage(appState, baseData, updateState) {
                     }
                 }, [
                     createElement('div', { className: 'champion-name-cell' }, [
-                        createChampionAvatar(champ.name, 40),
+                        createChampionAvatar(champ.name, 40, champ.icon),
                         createElement('span', { className: 'champion-name-text' }, [champ.name])
                     ])
                 ]),

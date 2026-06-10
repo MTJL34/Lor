@@ -88,7 +88,7 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
     
     const content = createElement('div', {}, [
         createElement('div', { className: 'champion-detail-hero' }, [
-            createChampionAvatar(champion.name, 96),
+            createChampionAvatar(champion.name, 96, champion.icon),
             createElement('div', {}, [
                 PageHeader(
                     `⭐ ${champion.name}`,
@@ -120,4 +120,3 @@ export function ChampionDetailPage(appState, baseData, regionName, championName,
     
     return content;
 }
-

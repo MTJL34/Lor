@@ -303,6 +303,7 @@ export function buildMainAppChampion({
     cost = 0,
     stars = 0,
     poc = 1,
+    icon = '',
     regionName = '',
     source = 'custom',
     resources
@@ -315,6 +316,7 @@ export function buildMainAppChampion({
         cost: Number(cost) || 0,
         stars: normalizedStars,
         poc: Number(poc) ? 1 : 0,
+        icon: String(icon || '').trim(),
         source,
         resources: normalizeChampionResources(resources, regionName)
     };
@@ -362,7 +364,10 @@ export async function syncChampionToMainApp({
         removeChampionFromAppState(state, lookupRegionName, lookupChampionName);
     }
 
-    upsertChampionInAppState(state, regionName, champion);
+    upsertChampionInAppState(state, regionName, {
+        ...champion,
+        icon: champion.icon || existingChampion?.icon || ''
+    });
     saveState(state);
     return true;
 }

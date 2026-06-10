@@ -162,7 +162,10 @@ const championImageAliases = {
     ziggz: "Ziggs"
 };
 
-export function getChampionImageUrl(championName) {
+export function getChampionImageUrl(championName, customImageUrl = '') {
+    const customUrl = String(customImageUrl || '').trim();
+    if (customUrl) return customUrl;
+
     const normalizedName = normalizeChampionNameForImageLookup(championName);
     if (!normalizedName) return '';
 
@@ -170,11 +173,18 @@ export function getChampionImageUrl(championName) {
     if (directMatch) return directMatch;
 
     const aliasName = championImageAliases[normalizedName];
-    return aliasName ? ChampionImages[aliasName] || '' : '';
+    if (aliasName) return ChampionImages[aliasName] || '';
+
+    const baseName = String(championName || '').split(':')[0].trim();
+    if (baseName && baseName !== championName) {
+        return getChampionImageUrl(baseName);
+    }
+
+    return '';
 }
 
-export function createChampionAvatar(championName, size = 42) {
-    const avatarUrl = getChampionImageUrl(championName);
+export function createChampionAvatar(championName, size = 42, customImageUrl = '') {
+    const avatarUrl = getChampionImageUrl(championName, customImageUrl);
     const initials = getChampionInitials(championName);
     const isCardArt = avatarUrl.includes('dd.b.pvp.net');
 

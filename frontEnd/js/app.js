@@ -211,6 +211,7 @@ function registerMainAppBridge() {
             const nextChampion = {
                 ...(existingChampion || {}),
                 ...champion,
+                icon: champion.icon || existingChampion?.icon || '',
                 source: champion.source || inferSyncedChampionSource(existingChampion)
             };
 
@@ -268,6 +269,7 @@ async function syncPoCChampionsIntoMainApp() {
                 cost: getPoCCostValue(effectiveChampion),
                 stars: getPoCStarsValue(effectiveChampion),
                 poc: effectiveChampion.POC ? 1 : 0,
+                icon: effectiveChampion.Champion_Icon || '',
                 regionName,
                 source: 'custom'
             });
@@ -420,5 +422,3 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-
-

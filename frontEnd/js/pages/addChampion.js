@@ -33,6 +33,7 @@ export function AddChampionPage(appState, baseData, updateState) {
     let formData = {
         region: '',
         name: '',
+        icon: '',
         cost: 0,
         stars_current: 3,
         stars_max: getRegionStarsMax(''),
@@ -100,6 +101,7 @@ export function AddChampionPage(appState, baseData, updateState) {
             cost: formData.cost,
             stars: formData.stars_current,
             poc: formData.poc,
+            icon: formData.icon,
             regionName: formData.region,
             source: 'custom',
             resources: {
@@ -187,10 +189,13 @@ export function AddChampionPage(appState, baseData, updateState) {
             const selected = pocChampionById.get(champId);
             if (!selected) {
                 formData.name = '';
+                formData.icon = '';
+                if (iconInputEl) iconInputEl.value = '';
                 return;
             }
 
             formData.name = selected.Champion_Name;
+            formData.icon = selected.Champion_Icon || '';
             formData.cost = pocCostById.get(selected.Cost_ID) || 0;
             formData.stars_current = pocStarsById.get(selected.Stars_ID) || 0;
             formData.poc = selected.POC ? 1 : 0;
@@ -203,6 +208,7 @@ export function AddChampionPage(appState, baseData, updateState) {
             if (starsCurrentInputEl) starsCurrentInputEl.value = String(formData.stars_current);
             if (starsMaxInput) starsMaxInput.value = String(formData.stars_max);
             if (regionSelect) regionSelect.value = formData.region;
+            if (iconInputEl) iconInputEl.value = formData.icon;
         }
     }, [
         createElement('option', { value: '', selected: true }, ['Choisir un champion']),
@@ -256,6 +262,19 @@ export function AddChampionPage(appState, baseData, updateState) {
     const starsMaxInput = createSimpleNumberInput(formData.stars_max, (val) => { formData.stars_max = val; }, 7);
     const pocInput = createNumberField('PoC (0 ou 1)', formData.poc, (val) => { formData.poc = val; }, 1);
     const pocInputEl = pocInput.querySelector('input');
+    const iconInput = createElement('div', { className: 'form-group' }, [
+        createElement('label', { className: 'form-label' }, ['Image (URL optionnelle)']),
+        createElement('input', {
+            type: 'text',
+            className: 'form-control',
+            value: formData.icon,
+            placeholder: 'https://...',
+            onInput: (e) => {
+                formData.icon = e.target.value;
+            }
+        })
+    ]);
+    const iconInputEl = iconInput.querySelector('input');
     
     const novaCrystalInput = createNumberField('Nova Crystal (0 ou 1)', formData.nova_crystal, (val) => { formData.nova_crystal = val; }, 1);
     
@@ -340,6 +359,7 @@ export function AddChampionPage(appState, baseData, updateState) {
                 createElement('label', { className: 'form-label' }, ['Champion (PoC)']),
                 championSelect
             ]),
+            iconInput,
             createElement('div', { className: 'form-row', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' } }, [
                 costInput,
                 createElement('div', {}, [

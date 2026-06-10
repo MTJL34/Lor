@@ -446,6 +446,7 @@ function syncChampionIntoMainAppIfNeeded(champion) {
     cost: getChampionCostValue(champion),
     stars: getChampionStarsValue(champion),
     poc: champion.POC ? 1 : 0,
+    icon: champion.Champion_Icon || '',
     regionName
   });
 
@@ -470,6 +471,7 @@ function syncChampionIntoMainApp(champion, originalChampion = null) {
     cost: getChampionCostValue(champion),
     stars: getChampionStarsValue(champion),
     poc: champion.POC ? 1 : 0,
+    icon: champion.Champion_Icon || '',
     regionName,
     source: "modified"
   });
