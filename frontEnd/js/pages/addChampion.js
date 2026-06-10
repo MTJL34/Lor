@@ -22,11 +22,15 @@ export function AddChampionPage(appState, baseData, updateState) {
     const pocCostById = new Map(PoCCosts.map(cost => [cost.Cost_ID, cost.Cost_Value]));
     const pocStarsById = new Map(PoCStars.map(star => [star.Stars_ID, star.Stars_Value]));
     const pocChampions = PoCChampions
-        .filter(champion => champion && champion.Champion_ID && champion.POC)
+        .filter(champion => (
+            champion
+            && champion.Champion_ID
+            && champion.POC
+            && Number(champion.Constellation_Number_ID) > 1
+        ))
         .slice()
         .sort((a, b) => a.Champion_Name.localeCompare(b.Champion_Name));
     const pocChampionById = new Map(pocChampions.map(champion => [champion.Champion_ID, champion]));
-    let pocRegionFilter = 'all';
     const defaultResources = getChampionResourceTemplate('');
     
     // Form state with requested default tier values
@@ -134,6 +138,7 @@ export function AddChampionPage(appState, baseData, updateState) {
             if (starsMaxInput) {
                 starsMaxInput.value = String(formData.stars_max);
             }
+            populateChampionOptions(championSelect);
         }
     }, [
         createElement('option', { value: '', selected: !formData.region }, ['Région']),
@@ -156,8 +161,8 @@ export function AddChampionPage(appState, baseData, updateState) {
         selectEl.appendChild(createElement('option', { value: '', selected: true }, ['Choisir un champion']));
 
         const filtered = pocChampions.filter(champion => {
-            if (pocRegionFilter === 'all') return true;
-            return getMappedRegionName(champion) === pocRegionFilter;
+            if (!formData.region) return false;
+            return getMappedRegionName(champion) === formData.region;
         });
 
         filtered.forEach(champion => {
@@ -165,22 +170,10 @@ export function AddChampionPage(appState, baseData, updateState) {
                 value: String(champion.Champion_ID)
             }, [champion.Champion_Name]));
         });
+        selectEl.value = '';
+        formData.name = '';
+        formData.icon = '';
     }
-
-    const pocRegionFilterSelect = createElement('select', {
-        className: 'form-control',
-        onChange: (e) => {
-            pocRegionFilter = e.target.value;
-            populateChampionOptions(championSelect);
-        }
-    }, [
-        createElement('option', { value: 'all', selected: true }, ['Toutes les régions']),
-        ...regionNames.map(name =>
-            createElement('option', {
-                value: name
-            }, [formatRegionName(name)])
-        )
-    ]);
 
     const championSelect = createElement('select', {
         className: 'form-control',
@@ -352,8 +345,8 @@ export function AddChampionPage(appState, baseData, updateState) {
         PageHeader('Ajouter un champion', 'Créer un nouveau champion personnalisé'),
         Card('Informations du champion', [
             createElement('div', { className: 'form-group' }, [
-                createElement('label', { className: 'form-label' }, ['Filtre région (PoC)']),
-                pocRegionFilterSelect
+                createElement('label', { className: 'form-label' }, ['Région']),
+                regionSelect
             ]),
             createElement('div', { className: 'form-group' }, [
                 createElement('label', { className: 'form-label' }, ['Champion (PoC)']),
@@ -361,11 +354,7 @@ export function AddChampionPage(appState, baseData, updateState) {
             ]),
             iconInput,
             createElement('div', { className: 'form-row', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' } }, [
-                costInput,
-                createElement('div', {}, [
-                    createElement('label', { className: 'form-label' }, ['Région']),
-                    regionSelect
-                ])
+                costInput
             ]),
             createElement('div', { className: 'form-row', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' } }, [
                 pocInput,

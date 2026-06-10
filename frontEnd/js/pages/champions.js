@@ -32,26 +32,38 @@ function getPoCStarsValue(champion) {
     return Number(Stars.find((star) => Number(star.Stars_ID) === Number(champion?.Stars_ID))?.Stars_Value) || 0;
 }
 
+function normalizeChampionNameForConstellation(name) {
+    return String(name || '').trim().toLowerCase();
+}
+
+function isRealConstellationChampion(champion) {
+    return Boolean(
+        champion?.Champion_Name
+        && champion.POC
+        && Number(champion.Constellation_Number_ID) > 1
+    );
+}
+
+function getEffectiveConstellationChampions() {
+    const overrides = getChampionOverrides();
+    const customChampions = getCustomChampions();
+    return [...PoCChampions, ...customChampions]
+        .map(champion => ({
+            ...champion,
+            ...(overrides[Number(champion.Champion_ID)] || {})
+        }))
+        .filter(isRealConstellationChampion);
+}
+
 function syncPoCChampionsIntoVisibleState(baseData, appState) {
     if (!baseData?.regions || !appState) {
         return;
     }
 
     const availableRegionNames = Object.keys(baseData.regions || {});
-    const overrides = getChampionOverrides();
-    const customChampions = getCustomChampions();
-    const allPoCChampions = [...PoCChampions, ...customChampions];
+    const allPoCChampions = getEffectiveConstellationChampions();
 
-    for (const champion of allPoCChampions) {
-        const effectiveChampion = {
-            ...champion,
-            ...(overrides[Number(champion.Champion_ID)] || {})
-        };
-
-        if (!effectiveChampion?.Champion_Name) {
-            continue;
-        }
-
+    for (const effectiveChampion of allPoCChampions) {
         const regionName = mapPoCRegionNameToAppRegion(getPoCRegionName(effectiveChampion), availableRegionNames);
         if (!regionName) {
             continue;
@@ -138,6 +150,18 @@ export function ChampionsPage(appState, baseData, updateState) {
     function editChampion(regionName, champName) {
         window.location.hash = `#/edit-champion/${encodeURIComponent(regionName)}/${encodeURIComponent(champName)}`;
     }
+
+    const constellationChampionNamesByRegion = new Map();
+    for (const champion of getEffectiveConstellationChampions()) {
+        const regionName = mapPoCRegionNameToAppRegion(getPoCRegionName(champion), Object.keys(baseData.regions || {}));
+        if (!regionName) continue;
+        if (!constellationChampionNamesByRegion.has(regionName)) {
+            constellationChampionNamesByRegion.set(regionName, new Set());
+        }
+        constellationChampionNamesByRegion
+            .get(regionName)
+            .add(normalizeChampionNameForConstellation(champion.Champion_Name));
+    }
     
     const groupedByRegion = [];
     
@@ -147,9 +171,10 @@ export function ChampionsPage(appState, baseData, updateState) {
         if (filterRegion && regionName !== filterRegion) continue;
         
         // Sort champions alphabetically
-        const sortedChampions = (regionBase.champions || []).sort((a, b) => 
-            a.name.localeCompare(b.name)
-        );
+        const allowedChampionNames = constellationChampionNamesByRegion.get(regionName) || new Set();
+        const sortedChampions = (regionBase.champions || [])
+            .filter(champ => allowedChampionNames.has(normalizeChampionNameForConstellation(champ.name)))
+            .sort((a, b) => a.name.localeCompare(b.name));
         
         groupedByRegion.push({
             regionName,

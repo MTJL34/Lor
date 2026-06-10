@@ -236,6 +236,14 @@ function getPoCStarsValue(champion) {
     return Number(Stars.find((star) => Number(star.Stars_ID) === Number(champion?.Stars_ID))?.Stars_Value) || 0;
 }
 
+function isRealConstellationChampion(champion) {
+    return Boolean(
+        champion?.Champion_Name
+        && champion.POC
+        && Number(champion.Constellation_Number_ID) > 1
+    );
+}
+
 async function syncPoCChampionsIntoMainApp() {
     if (!globalState.baseData) {
         return;
@@ -256,6 +264,10 @@ async function syncPoCChampionsIntoMainApp() {
             };
 
             if (!effectiveChampion?.Champion_Name) {
+                continue;
+            }
+
+            if (!isRealConstellationChampion(effectiveChampion)) {
                 continue;
             }
 
