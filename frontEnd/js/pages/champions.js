@@ -3,94 +3,6 @@
 import { createElement, formatRegionName, getRegionStarsMax, createRegionIcon, createResourceIcon, createChampionAvatar } from '../ui.js';
 import { applyComputedRegionTotals } from '../calc.js';
 import { PageHeader, Card, Button } from '../components/layout.js';
-import { Champion as PoCChampions } from '../../data/Champion.js';
-import { Cost } from '../../data/Cost.js';
-import { Region as PoCRegions } from '../../data/Region.js';
-import { Stars } from '../../data/Stars.js';
-import {
-    buildMainAppChampion,
-    mapPoCRegionNameToAppRegion,
-    resolveChampionForEdit,
-    upsertChampionInAppState,
-    upsertChampionInBaseData
-} from '../championState.js';
-import {
-    getChampionOverrides,
-    getCustomChampions,
-    initializePoCSharedState
-} from '../pocSharedState.js';
-
-function getPoCRegionName(champion) {
-    return PoCRegions.find((region) => Number(region.Region_ID) === Number(champion?.Region_ID))?.Region_Name || '';
-}
-
-function getPoCCostValue(champion) {
-    return Number(Cost.find((cost) => Number(cost.Cost_ID) === Number(champion?.Cost_ID))?.Cost_Value) || 0;
-}
-
-function getPoCStarsValue(champion) {
-    return Number(Stars.find((star) => Number(star.Stars_ID) === Number(champion?.Stars_ID))?.Stars_Value) || 0;
-}
-
-function normalizeChampionNameForConstellation(name) {
-    return String(name || '').trim().toLowerCase();
-}
-
-function isRealConstellationChampion(champion) {
-    return Boolean(
-        champion?.Champion_Name
-        && champion.POC
-        && Number(champion.Constellation_Number_ID) > 1
-    );
-}
-
-function getEffectiveConstellationChampions() {
-    const overrides = getChampionOverrides();
-    const customChampions = getCustomChampions();
-    return [...PoCChampions, ...customChampions]
-        .map(champion => ({
-            ...champion,
-            ...(overrides[Number(champion.Champion_ID)] || {})
-        }))
-        .filter(isRealConstellationChampion);
-}
-
-function syncPoCChampionsIntoVisibleState(baseData, appState) {
-    if (!baseData?.regions || !appState) {
-        return;
-    }
-
-    const availableRegionNames = Object.keys(baseData.regions || {});
-    const allPoCChampions = getEffectiveConstellationChampions();
-
-    for (const effectiveChampion of allPoCChampions) {
-        const regionName = mapPoCRegionNameToAppRegion(getPoCRegionName(effectiveChampion), availableRegionNames);
-        if (!regionName) {
-            continue;
-        }
-
-        const existingChampion = resolveChampionForEdit(
-            appState,
-            baseData,
-            regionName,
-            effectiveChampion.Champion_Name
-        );
-        const nextChampion = buildMainAppChampion({
-            name: effectiveChampion.Champion_Name,
-            cost: getPoCCostValue(effectiveChampion),
-            stars: getPoCStarsValue(effectiveChampion),
-            poc: effectiveChampion.POC ? 1 : 0,
-            icon: effectiveChampion.Champion_Icon || existingChampion?.icon || '',
-            regionName,
-            source: 'custom'
-        });
-
-        upsertChampionInAppState(appState, regionName, nextChampion);
-        upsertChampionInBaseData(baseData, regionName, nextChampion);
-    }
-
-    applyComputedRegionTotals(baseData);
-}
 
 export function ChampionsPage(appState, baseData, updateState) {
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
@@ -104,14 +16,6 @@ export function ChampionsPage(appState, baseData, updateState) {
         }
     }
 
-    syncPoCChampionsIntoVisibleState(baseData, appState);
-    void initializePoCSharedState()
-        .then(() => {
-            syncPoCChampionsIntoVisibleState(baseData, appState);
-        })
-        .catch((error) => {
-            console.warn('[Constellation] PoC shared state refresh failed:', error.message);
-        });
     const filterRegion = urlParams.get('region');
     
     // Order regions as specified
@@ -151,18 +55,6 @@ export function ChampionsPage(appState, baseData, updateState) {
         window.location.hash = `#/edit-champion/${encodeURIComponent(regionName)}/${encodeURIComponent(champName)}`;
     }
 
-    const constellationChampionNamesByRegion = new Map();
-    for (const champion of getEffectiveConstellationChampions()) {
-        const regionName = mapPoCRegionNameToAppRegion(getPoCRegionName(champion), Object.keys(baseData.regions || {}));
-        if (!regionName) continue;
-        if (!constellationChampionNamesByRegion.has(regionName)) {
-            constellationChampionNamesByRegion.set(regionName, new Set());
-        }
-        constellationChampionNamesByRegion
-            .get(regionName)
-            .add(normalizeChampionNameForConstellation(champion.Champion_Name));
-    }
-    
     const groupedByRegion = [];
     
     for (const regionName of regionOrder) {
@@ -171,9 +63,7 @@ export function ChampionsPage(appState, baseData, updateState) {
         if (filterRegion && regionName !== filterRegion) continue;
         
         // Sort champions alphabetically
-        const allowedChampionNames = constellationChampionNamesByRegion.get(regionName) || new Set();
         const sortedChampions = (regionBase.champions || [])
-            .filter(champ => allowedChampionNames.has(normalizeChampionNameForConstellation(champ.name)))
             .sort((a, b) => a.name.localeCompare(b.name));
         
         groupedByRegion.push({

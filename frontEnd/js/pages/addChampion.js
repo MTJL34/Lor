@@ -107,7 +107,7 @@ export function AddChampionPage(appState, baseData, updateState) {
             poc: formData.poc,
             icon: formData.icon,
             regionName: formData.region,
-            source: 'custom',
+            source: 'manual',
             resources: {
                 nova_crystal: formData.nova_crystal,
                 star_crystal_tiers: starCrystalTiers,

@@ -494,7 +494,7 @@ export function EditChampionPage(appState, baseData, region, championName, updat
           poc: parseInt(container.querySelector('#poc').value) || 0,
           icon: container.querySelector('#icon').value.trim(),
           regionName: newRegion,
-          source: champion.source === 'custom' ? 'custom' : 'modified',
+          source: champion.source === 'manual' ? 'manual' : (champion.source === 'custom' ? 'custom' : 'modified'),
           resources: {
             nova_crystal: parseInt(container.querySelector('#nova_crystal').value) || 0,
             star_crystal_tiers: starCrystalTiers,

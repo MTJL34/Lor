@@ -15,29 +15,17 @@ import { ExportImportPage } from './pages/exportImport.js';
 import { HelpRulesPage } from './pages/helpRules.js';
 import { PoCEmbedPage } from './pages/pocEmbed.js';
 import { applyComputedRegionTotals } from './calc.js';
-import { Champion as PoCChampions } from '../data/Champion.js';
-import { Cost } from '../data/Cost.js';
-import { Region as PoCRegions } from '../data/Region.js';
-import { Stars } from '../data/Stars.js';
 import siteDataFallback from '../data/site_data.js';
 import {
-    buildMainAppChampion,
     inferSyncedChampionSource,
-    mapPoCRegionNameToAppRegion,
     normalizeChampionName,
     removeChampionFromAppState,
     removeChampionFromBaseData,
     resolveChampionForEdit,
     setMainAppBridge,
-    syncChampionToMainApp,
     upsertChampionInAppState,
     upsertChampionInBaseData
 } from './championState.js';
-import {
-    getChampionOverrides,
-    getCustomChampions,
-    initializePoCSharedState
-} from './pocSharedState.js';
 
 // Global state object that can be imported
 export const globalState = {
@@ -133,11 +121,16 @@ async function initializeState() {
     if (saved && validateState(saved)) {
         console.log('📦 Loading saved state');
         
-        // Restore custom champions to baseData
+        // Restore only user-maintained champions. Older auto-synced PoC entries used source "custom".
         if (saved.customChampions) {
             for (const [regionName, champions] of Object.entries(saved.customChampions)) {
                 if (globalState.baseData.regions[regionName]) {
-                    for (const customChamp of champions) {
+                    const restoredChampions = champions.filter((champion) => (
+                        champion?.source === 'manual'
+                        || champion?.source === 'modified'
+                    ));
+                    saved.customChampions[regionName] = restoredChampions;
+                    for (const customChamp of restoredChampions) {
                         upsertChampionInBaseData(globalState.baseData, regionName, customChamp);
                     }
                 }
@@ -222,79 +215,6 @@ function registerMainAppBridge() {
             return true;
         }
     });
-}
-
-function getPoCRegionName(champion) {
-    return PoCRegions.find((region) => Number(region.Region_ID) === Number(champion?.Region_ID))?.Region_Name || '';
-}
-
-function getPoCCostValue(champion) {
-    return Number(Cost.find((cost) => Number(cost.Cost_ID) === Number(champion?.Cost_ID))?.Cost_Value) || 0;
-}
-
-function getPoCStarsValue(champion) {
-    return Number(Stars.find((star) => Number(star.Stars_ID) === Number(champion?.Stars_ID))?.Stars_Value) || 0;
-}
-
-function isRealConstellationChampion(champion) {
-    return Boolean(
-        champion?.Champion_Name
-        && champion.POC
-        && Number(champion.Constellation_Number_ID) > 1
-    );
-}
-
-async function syncPoCChampionsIntoMainApp() {
-    if (!globalState.baseData) {
-        return;
-    }
-
-    try {
-        await initializePoCSharedState();
-
-        const availableRegionNames = Object.keys(globalState.baseData.regions || {});
-        const overrides = getChampionOverrides();
-        const customChampions = getCustomChampions();
-        const allPoCChampions = [...PoCChampions, ...customChampions];
-
-        for (const champion of allPoCChampions) {
-            const effectiveChampion = {
-                ...champion,
-                ...(overrides[Number(champion.Champion_ID)] || {})
-            };
-
-            if (!effectiveChampion?.Champion_Name) {
-                continue;
-            }
-
-            if (!isRealConstellationChampion(effectiveChampion)) {
-                continue;
-            }
-
-            const regionName = mapPoCRegionNameToAppRegion(getPoCRegionName(effectiveChampion), availableRegionNames);
-            if (!regionName) {
-                continue;
-            }
-
-            const nextChampion = buildMainAppChampion({
-                name: effectiveChampion.Champion_Name,
-                cost: getPoCCostValue(effectiveChampion),
-                stars: getPoCStarsValue(effectiveChampion),
-                poc: effectiveChampion.POC ? 1 : 0,
-                icon: effectiveChampion.Champion_Icon || '',
-                regionName,
-                source: 'custom'
-            });
-
-            await syncChampionToMainApp({
-                regionName,
-                champion: nextChampion,
-                onlyIfMissing: true
-            });
-        }
-    } catch (error) {
-        console.warn('Unable to synchronize PoC champions into the main app:', error?.message || error);
-    }
 }
 
 function route() {
@@ -418,7 +338,6 @@ async function init() {
     
     globalState.appState = await initializeState();
     registerMainAppBridge();
-    await syncPoCChampionsIntoMainApp();
     saveState(globalState.appState);
     setupResponsiveNav();
     
