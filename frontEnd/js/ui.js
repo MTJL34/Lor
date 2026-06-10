@@ -132,10 +132,10 @@ function getChampionInitials(championName) {
 
 function normalizeChampionNameForImageLookup(championName) {
     return String(championName || '')
+        .replace(/(?:\u00e2\u20ac\u2122|\u00e2\u20ac\u02dc|\u00e2\u20ac\u00b2|\u00e2\u0080\u0099|\u00e2\u0080\u0098|[\u2019\u2018'`\u00b4])/g, '')
         .normalize('NFKD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[’‘`´]/g, "'")
-        .replace(/[^A-Za-z0-9']+/g, '')
+        .replace(/[^A-Za-z0-9]+/g, '')
         .toLowerCase()
         .trim();
 }
@@ -148,13 +148,17 @@ const championImageLookup = Object.fromEntries(
 );
 
 const championImageAliases = {
-    kaisa: "Kai'Sa",
-    reksai: "Rek'Sai",
-    chogath: "Cho'Gath",
-    khazix: "Kha'Zix",
-    ksante: "K'Sante",
-    kogmaw: "Kog'Maw",
-    velkoz: "Vel'Koz",
+    drmund: "Dr. Mundo",
+    drmundo: "Dr. Mundo",
+    luxilluminated: "Lux",
+    nunu: "Nunu & Willump",
+    qiyanna: "Qiyana",
+    renataglasc: "Renata Glasc",
+    spiritbahri: "Ahri",
+    spiritbevelynn: "Evelynn",
+    spiritbmasteryi: "Master Yi",
+    spiritbteemo: "Teemo",
+    spiritbyasuo: "Yasuo",
     ziggz: "Ziggs"
 };
 
@@ -172,9 +176,10 @@ export function getChampionImageUrl(championName) {
 export function createChampionAvatar(championName, size = 42) {
     const avatarUrl = getChampionImageUrl(championName);
     const initials = getChampionInitials(championName);
+    const isCardArt = avatarUrl.includes('dd.b.pvp.net');
 
     const avatar = createElement('img', {
-        className: 'champion-avatar',
+        className: `champion-avatar${isCardArt ? ' champion-avatar-card' : ''}`,
         alt: championName,
         title: championName,
         width: size,
