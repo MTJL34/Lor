@@ -1,5 +1,6 @@
 // UI helpers and DOM utilities
 import { Region as PoCRegions } from '../data/Region.js';
+import { ChampionImages } from '../data/ChampionImages.js';
 
 export function $(selector) {
     return document.querySelector(selector);
@@ -129,25 +130,47 @@ function getChampionInitials(championName) {
     return `${words[0][0] || ''}${words[words.length - 1][0] || ''}`.toUpperCase();
 }
 
-function normalizeChampionNameForWiki(championName) {
+function normalizeChampionNameForImageLookup(championName) {
     return String(championName || '')
         .normalize('NFKD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/['’]/g, '')
-        .replace(/[^A-Za-z0-9]+/g, '')
+        .replace(/[’‘`´]/g, "'")
+        .replace(/[^A-Za-z0-9']+/g, '')
+        .toLowerCase()
         .trim();
 }
 
-export function getChampionWikiImageUrl(championName, size = 96) {
-    const normalizedName = normalizeChampionNameForWiki(championName);
+const championImageLookup = Object.fromEntries(
+    Object.entries(ChampionImages).map(([name, url]) => [
+        normalizeChampionNameForImageLookup(name),
+        url
+    ])
+);
+
+const championImageAliases = {
+    kaisa: "Kai'Sa",
+    reksai: "Rek'Sai",
+    chogath: "Cho'Gath",
+    khazix: "Kha'Zix",
+    ksante: "K'Sante",
+    kogmaw: "Kog'Maw",
+    velkoz: "Vel'Koz",
+    ziggz: "Ziggs"
+};
+
+export function getChampionImageUrl(championName) {
+    const normalizedName = normalizeChampionNameForImageLookup(championName);
     if (!normalizedName) return '';
 
-    const encodedName = encodeURIComponent(normalizedName);
-    return `https://wiki.leagueoflegends.com/en-us/images/thumb/${encodedName}_OriginalCircle.png/${size}px-${encodedName}_OriginalCircle.png`;
+    const directMatch = championImageLookup[normalizedName];
+    if (directMatch) return directMatch;
+
+    const aliasName = championImageAliases[normalizedName];
+    return aliasName ? ChampionImages[aliasName] || '' : '';
 }
 
 export function createChampionAvatar(championName, size = 42) {
-    const avatarUrl = getChampionWikiImageUrl(championName, Math.max(48, size));
+    const avatarUrl = getChampionImageUrl(championName);
     const initials = getChampionInitials(championName);
 
     const avatar = createElement('img', {
