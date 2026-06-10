@@ -122,6 +122,12 @@ export function AddChampionPage(appState, baseData, updateState) {
         upsertChampionInBaseData(baseData, formData.region, newChampion);
         applyComputedRegionTotals(baseData);
         
+        if (appState.deletedChampions?.[formData.region]) {
+            const normalizedName = formData.name.trim().toLowerCase();
+            appState.deletedChampions[formData.region] = appState.deletedChampions[formData.region]
+                .filter(name => String(name || '').trim().toLowerCase() !== normalizedName);
+        }
+
         upsertChampionInAppState(appState, formData.region, newChampion);
         
         // Save and redirect

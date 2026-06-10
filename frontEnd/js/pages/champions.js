@@ -7,6 +7,20 @@ import { PageHeader, Card, Button } from '../components/layout.js';
 export function ChampionsPage(appState, baseData, updateState) {
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
 
+    function normalizeChampionName(name) {
+        return String(name || '').trim().toLowerCase();
+    }
+
+    function ensureDeletedChampionList(regionName) {
+        if (!appState.deletedChampions || typeof appState.deletedChampions !== 'object') {
+            appState.deletedChampions = {};
+        }
+        if (!Array.isArray(appState.deletedChampions[regionName])) {
+            appState.deletedChampions[regionName] = [];
+        }
+        return appState.deletedChampions[regionName];
+    }
+
     if (baseData?.regions) {
         const regionEntries = Object.entries(baseData.regions);
         for (const [, regionData] of regionEntries) {
@@ -29,26 +43,30 @@ export function ChampionsPage(appState, baseData, updateState) {
         if (!confirm(`Supprimer "${champName}" de ${regionName} ?`)) return;
         
         const regionBase = baseData.regions[regionName];
-        if (!regionBase || !regionBase.champions) return;
-        
-        const index = regionBase.champions.findIndex(c => c.name === champName);
+        if (!regionBase) return;
+
+        const deletedChampions = ensureDeletedChampionList(regionName);
+        if (!deletedChampions.some(name => normalizeChampionName(name) === normalizeChampionName(champName))) {
+            deletedChampions.push(champName);
+        }
+
+        const champions = Array.isArray(regionBase.champions) ? regionBase.champions : [];
+        const index = champions.findIndex(c => normalizeChampionName(c.name) === normalizeChampionName(champName));
         if (index !== -1) {
-            regionBase.champions.splice(index, 1);
-            
-            // Remove from appState.customChampions
-            if (appState.customChampions && appState.customChampions[regionName]) {
-                const customIndex = appState.customChampions[regionName].findIndex(
-                    c => c.name === champName
-                );
-                if (customIndex !== -1) {
+            champions.splice(index, 1);
+        }
+
+        if (appState.customChampions && appState.customChampions[regionName]) {
+            for (let customIndex = appState.customChampions[regionName].length - 1; customIndex >= 0; customIndex -= 1) {
+                const champion = appState.customChampions[regionName][customIndex];
+                if (normalizeChampionName(champion?.name) === normalizeChampionName(champName)) {
                     appState.customChampions[regionName].splice(customIndex, 1);
                 }
             }
-            
-            updateState(appState);
-            applyComputedRegionTotals(baseData);
-            window.location.reload();
         }
+
+        applyComputedRegionTotals(baseData);
+        updateState(appState);
     }
     
     function editChampion(regionName, champName) {

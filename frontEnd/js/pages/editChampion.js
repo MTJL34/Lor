@@ -512,6 +512,12 @@ export function EditChampionPage(appState, baseData, region, championName, updat
           removeChampionFromAppState(appState, formData.originalRegion, formData.originalName);
         }
 
+        if (appState.deletedChampions?.[newRegion]) {
+          const normalizedNewName = newName.toLowerCase();
+          appState.deletedChampions[newRegion] = appState.deletedChampions[newRegion]
+            .filter(name => String(name || '').trim().toLowerCase() !== normalizedNewName);
+        }
+
         upsertChampionInBaseData(baseData, newRegion, updatedChampion);
         upsertChampionInAppState(appState, newRegion, updatedChampion);
         syncMainChampionToPoC(formData.originalName, updatedChampion, newRegion);

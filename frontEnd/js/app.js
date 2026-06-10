@@ -121,13 +121,33 @@ async function initializeState() {
     if (saved && validateState(saved)) {
         console.log('📦 Loading saved state');
         
+        if (!saved.deletedChampions || typeof saved.deletedChampions !== 'object') {
+            saved.deletedChampions = {};
+        }
+
+        for (const [regionName, championNames] of Object.entries(saved.deletedChampions)) {
+            if (!globalState.baseData.regions[regionName] || !Array.isArray(championNames)) {
+                continue;
+            }
+            for (const championName of championNames) {
+                removeChampionFromBaseData(globalState.baseData, regionName, championName);
+            }
+        }
+
         // Restore only user-maintained champions. Older auto-synced PoC entries used source "custom".
         if (saved.customChampions) {
             for (const [regionName, champions] of Object.entries(saved.customChampions)) {
                 if (globalState.baseData.regions[regionName]) {
+                    const deletedNames = new Set(
+                        (saved.deletedChampions[regionName] || [])
+                            .map(name => normalizeChampionName(name))
+                    );
                     const restoredChampions = champions.filter((champion) => (
-                        champion?.source === 'manual'
-                        || champion?.source === 'modified'
+                        (
+                            champion?.source === 'manual'
+                            || champion?.source === 'modified'
+                        )
+                        && !deletedNames.has(normalizeChampionName(champion?.name))
                     ));
                     saved.customChampions[regionName] = restoredChampions;
                     for (const customChamp of restoredChampions) {
@@ -163,7 +183,8 @@ async function initializeState() {
             showSimulatedCraftView: false
         },
         inventoryByRegion,
-        customChampions: {}
+        customChampions: {},
+        deletedChampions: {}
     };
     
     console.log('💾 Saving new state');
