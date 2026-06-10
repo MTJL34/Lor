@@ -31,6 +31,8 @@ export function ChampionsPage(appState, baseData, updateState) {
     }
 
     const filterRegion = urlParams.get('region');
+    const selectedRegion = urlParams.get('selectedRegion');
+    const selectedChampionName = urlParams.get('selectedChampion');
     
     // Order regions as specified
     const regionOrder = [
@@ -71,6 +73,15 @@ export function ChampionsPage(appState, baseData, updateState) {
     
     function editChampion(regionName, champName) {
         window.location.hash = `#/edit-champion/${encodeURIComponent(regionName)}/${encodeURIComponent(champName)}`;
+    }
+
+    
+    function selectChampion(regionName, champName) {
+        const params = new URLSearchParams();
+        if (filterRegion) params.set('region', filterRegion);
+        params.set('selectedRegion', regionName);
+        params.set('selectedChampion', champName);
+        window.location.hash = `#/constellation?${params.toString()}`;
     }
 
     const groupedByRegion = [];
@@ -230,7 +241,7 @@ export function ChampionsPage(appState, baseData, updateState) {
             const cells = [
                 createElement('td', { className: 'center-cell', style: { cursor: 'pointer' },
                     onClick: () => {
-                        window.location.hash = `#/champion/${encodeURIComponent(champ.region)}/${encodeURIComponent(champ.name)}`;
+                        selectChampion(champ.region, champ.name);
                     }
                 }, [
                     createElement('div', { className: 'champion-name-cell' }, [
@@ -375,9 +386,16 @@ export function ChampionsPage(appState, baseData, updateState) {
         window.location.hash = '#/add-champion';
     }, 'primary');
 
-    const recapSection = Card('Recap champions', [
-        createElement('div', { className: 'constellation-recap-grid' }, allChampions.map(createChampionRecapCard))
-    ]);
+    const selectedChampion = allChampions.find(champ => (
+        champ.region === selectedRegion
+        && normalizeChampionName(champ.name) === normalizeChampionName(selectedChampionName)
+    ));
+
+    const recapSection = selectedChampion ? Card('Recap champion', [
+        createElement('div', { className: 'constellation-recap-grid is-single' }, [
+            createChampionRecapCard(selectedChampion)
+        ])
+    ]) : null;
 
     const content = createElement('div', {}, [
         PageHeader('Constellation', 'Tous les champions par région'),
@@ -388,7 +406,7 @@ export function ChampionsPage(appState, baseData, updateState) {
             ]),
             createElement('div', { style: { marginTop: '1rem' } }, [addButton])
         ]),
-        recapSection,
+        ...(recapSection ? [recapSection] : []),
         ...regionSections,
         totalsTable
     ]);

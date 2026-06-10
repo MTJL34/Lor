@@ -99,6 +99,10 @@ body.app-nav-open {
     align-items: start;
 }
 
+.constellation-recap-grid.is-single {
+    max-width: 340px;
+}
+
 .constellation-recap-card {
     overflow: hidden;
     border: 1px solid #8f6f2a;
