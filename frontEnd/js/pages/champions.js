@@ -198,6 +198,100 @@ export function ChampionsPage(appState, baseData, updateState) {
         return String(val);
     }
 
+    function createResourceAmount(resourceKey, value) {
+        const numericValue = Number(value) || 0;
+        if (!numericValue) return null;
+
+        return createElement('span', { className: 'constellation-resource-amount' }, [
+            createResourceIcon(resourceKey, 17),
+            createElement('span', {}, [String(numericValue)])
+        ]);
+    }
+
+    function createStarPowerNode(label, resourceNodes) {
+        const visibleResources = resourceNodes.filter(Boolean);
+
+        return createElement('div', { className: 'constellation-star-node' }, [
+            createElement('div', { className: 'constellation-star-label' }, [label]),
+            createElement('div', { className: 'constellation-star-costs' }, (
+                visibleResources.length
+                    ? visibleResources
+                    : [createElement('span', { className: 'constellation-empty-cost' }, ['-'])]
+            ))
+        ]);
+    }
+
+    function createChampionRecapCard(champ) {
+        const resources = champ.resources || {};
+        const wildTiers = Array.isArray(resources.wild_shards_tiers) ? resources.wild_shards_tiers : [];
+        const starTiers = Array.isArray(resources.star_crystal_tiers) ? resources.star_crystal_tiers : [];
+        const starNodes = [
+            createStarPowerNode('★', [createResourceAmount('wild_shards', wildTiers[0])]),
+            createStarPowerNode('★★', [createResourceAmount('star_crystal', starTiers[0])]),
+            createStarPowerNode('★★★', [createResourceAmount('star_crystal', starTiers[1])]),
+            createStarPowerNode('★★★★', [createResourceAmount('wild_shards', wildTiers[1])]),
+            createStarPowerNode('★★★★★', [createResourceAmount('wild_shards', wildTiers[2])]),
+            createStarPowerNode('★★★★★★', [
+                createResourceAmount('wild_shards', wildTiers[3]),
+                createResourceAmount('nova_crystal', resources.nova_crystal)
+            ])
+        ];
+
+        if (getRegionStarsMax(champ.region) > 6) {
+            starNodes.push(createStarPowerNode('★★★★★★★', [
+                createResourceAmount('star_crystal', starTiers[2])
+            ]));
+        }
+
+        const resourceSummary = [
+            ['Wild Shards', createResourceAmount('wild_shards', resources.wild_shards_total)],
+            ['Star Crystal', createResourceAmount('star_crystal', resources.star_crystal_total)],
+            ['Gemstone', createResourceAmount('gemstone', resources.gemstone_total)],
+            ['Nova Crystal', createResourceAmount('nova_crystal', resources.nova_crystal)]
+        ].filter(([, node]) => Boolean(node));
+
+        return createElement('article', { className: 'constellation-recap-card' }, [
+            createElement('div', { className: 'constellation-recap-header' }, [
+                createElement('div', {}, [
+                    createElement('div', { className: 'constellation-recap-kicker' }, ['Path of Champions']),
+                    createElement('h3', {}, [champ.name]),
+                    createElement('p', {}, [`${formatRegionName(champ.region)} - ${champ.stars || 0}/${getRegionStarsMax(champ.region)} étoiles`])
+                ]),
+                createElement('button', {
+                    type: 'button',
+                    className: 'constellation-recap-edit',
+                    onClick: () => editChampion(champ.region, champ.name)
+                }, ['edit'])
+            ]),
+            createElement('button', {
+                type: 'button',
+                className: 'constellation-recap-portrait',
+                onClick: () => {
+                    window.location.hash = `#/champion/${encodeURIComponent(champ.region)}/${encodeURIComponent(champ.name)}`;
+                }
+            }, [
+                createChampionAvatar(champ.name, 132, champ.icon),
+                createElement('span', { className: 'constellation-cost-badge' }, [String(champ.cost || 0)])
+            ]),
+            createElement('div', { className: 'constellation-recap-section-title' }, ['Star Powers']),
+            createElement('div', { className: 'constellation-star-grid' }, starNodes),
+            createElement('div', { className: 'constellation-recap-section-title' }, ['Constellation Resources']),
+            createElement('div', { className: 'constellation-resource-list' }, [
+                ...resourceSummary.map(([label, node]) => createElement('div', { className: 'constellation-resource-row' }, [
+                    createElement('span', {}, [label]),
+                    node
+                ])),
+                createElement('div', { className: 'constellation-resource-row' }, [
+                    createElement('span', {}, ['Region']),
+                    createElement('span', { className: 'constellation-region-pill' }, [
+                        createRegionIcon(champ.region, 18),
+                        createElement('span', {}, [formatRegionName(champ.region)])
+                    ])
+                ])
+            ])
+        ]);
+    }
+
     const regionSections = groupedByRegion.map(group => {
         const champRows = group.champions.map(champ => {
             const cells = [
@@ -347,7 +441,11 @@ export function ChampionsPage(appState, baseData, updateState) {
     const addButton = Button('+ Ajouter un champion', () => {
         window.location.hash = '#/add-champion';
     }, 'primary');
-    
+
+    const recapSection = Card('Recap champions', [
+        createElement('div', { className: 'constellation-recap-grid' }, allChampions.map(createChampionRecapCard))
+    ]);
+
     const content = createElement('div', {}, [
         PageHeader('Constellation', 'Tous les champions par région'),
         Card('Filtres', [
@@ -357,6 +455,7 @@ export function ChampionsPage(appState, baseData, updateState) {
             ]),
             createElement('div', { style: { marginTop: '1rem' } }, [addButton])
         ]),
+        recapSection,
         ...regionSections,
         totalsTable
     ]);

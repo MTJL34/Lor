@@ -92,6 +92,186 @@ body.app-nav-open {
     margin-bottom: 0;
 }
 
+.constellation-recap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.constellation-recap-card {
+    overflow: hidden;
+    border: 1px solid #8f6f2a;
+    border-radius: 4px;
+    background: #020d16;
+    color: var(--text-primary);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.constellation-recap-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    background: #83682a;
+    text-align: center;
+}
+
+.constellation-recap-header > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.constellation-recap-kicker {
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.constellation-recap-header h3 {
+    margin: 0.5rem 0 0.1rem;
+    font-size: 1rem;
+    line-height: 1.15;
+}
+
+.constellation-recap-header p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 0.82rem;
+    font-style: italic;
+    line-height: 1.25;
+}
+
+.constellation-recap-edit {
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.78);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0.15rem;
+}
+
+.constellation-recap-edit:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.constellation-recap-portrait {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 1rem 1rem 0.85rem;
+    border: 0;
+    border-bottom: 1px solid #8f6f2a;
+    background: radial-gradient(circle at 50% 16%, rgba(143, 111, 42, 0.24), transparent 56%);
+    cursor: pointer;
+}
+
+.constellation-recap-portrait .champion-avatar-shell {
+    border-radius: 50%;
+    outline: 3px solid rgba(214, 172, 58, 0.7);
+    outline-offset: 3px;
+}
+
+.constellation-cost-badge {
+    position: absolute;
+    left: calc(50% - 77px);
+    top: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(255, 232, 143, 0.88);
+    border-radius: 50%;
+    background: #2055a4;
+    color: #fff;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.constellation-recap-section-title {
+    padding: 0.35rem 0.75rem;
+    background: #83682a;
+    color: #fff;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.constellation-star-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem 0.45rem;
+    padding: 0.8rem 0.75rem;
+}
+
+.constellation-star-node {
+    min-width: 0;
+    text-align: center;
+}
+
+.constellation-star-label {
+    min-height: 1.25rem;
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 800;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+}
+
+.constellation-star-costs,
+.constellation-resource-amount,
+.constellation-region-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.constellation-star-costs {
+    flex-wrap: wrap;
+    min-height: 1.45rem;
+    color: #ffc94f;
+    font-weight: 700;
+}
+
+.constellation-empty-cost {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.constellation-resource-list {
+    padding: 0.65rem 0.75rem 0.8rem;
+}
+
+.constellation-resource-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+}
+
+.constellation-resource-row > span:first-child {
+    color: #fff;
+    font-weight: 700;
+}
+
+.constellation-region-pill {
+    min-width: 0;
+    color: var(--text-primary);
+}
+
+.constellation-region-pill span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .app-nav-toggle {
     position: fixed;
     top: 12px;
