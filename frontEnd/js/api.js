@@ -1,6 +1,6 @@
 import { FORCED_API_BASE } from './runtimeConfig.js';
 
-const API_TIMEOUT_MS = 10000;
+const API_TIMEOUT_MS = 1200;
 const DEFAULT_API_BASE = 'http://localhost:3000/api';
 const API_BASE_STORAGE_KEY = 'lor_api_base';
 
@@ -35,6 +35,10 @@ function isLikelyFrontendPort(port) {
 }
 
 function detectApiBases() {
+  if (typeof window !== 'undefined' && window.location?.protocol === 'file:') {
+    return [];
+  }
+
   const forcedApiBase = normalizeApiBase(FORCED_API_BASE);
   if (forcedApiBase) {
     return [forcedApiBase];

@@ -19,6 +19,7 @@ import { Champion as PoCChampions } from '../data/Champion.js';
 import { Cost } from '../data/Cost.js';
 import { Region as PoCRegions } from '../data/Region.js';
 import { Stars } from '../data/Stars.js';
+import siteDataFallback from '../data/site_data.js';
 import {
     buildMainAppChampion,
     inferSyncedChampionSource,
@@ -107,10 +108,9 @@ async function loadBaseData() {
     }
 
     try {
-        const moduleData = await import('../data/site_data.json', { with: { type: 'json' } });
-        if (moduleData?.default) {
+        if (siteDataFallback) {
             console.log('📦 Base data loaded from bundled site_data.json module');
-            return moduleData.default;
+            return siteDataFallback;
         }
     } catch (e) {
         console.warn('JSON module fallback unavailable, trying fetch fallback:', e.message);
