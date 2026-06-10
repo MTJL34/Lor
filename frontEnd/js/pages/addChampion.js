@@ -7,6 +7,7 @@ import { Champion as PoCChampions } from '../../data/Champion.js';
 import { Region as PoCRegions } from '../../data/Region.js';
 import { Cost as PoCCosts } from '../../data/Cost.js';
 import { Stars as PoCStars } from '../../data/Stars.js';
+import { getChampionOverrides, getCustomChampions } from '../pocSharedState.js';
 import {
     buildMainAppChampion,
     getChampionResourceTemplate,
@@ -21,7 +22,12 @@ export function AddChampionPage(appState, baseData, updateState) {
     const pocRegionById = new Map(PoCRegions.map(region => [region.Region_ID, region.Region_Name]));
     const pocCostById = new Map(PoCCosts.map(cost => [cost.Cost_ID, cost.Cost_Value]));
     const pocStarsById = new Map(PoCStars.map(star => [star.Stars_ID, star.Stars_Value]));
-    const pocChampions = PoCChampions
+    const championOverrides = getChampionOverrides();
+    const pocChampions = [...PoCChampions, ...getCustomChampions()]
+        .map(champion => ({
+            ...champion,
+            ...(championOverrides[Number(champion.Champion_ID)] || {})
+        }))
         .filter(champion => (
             champion
             && champion.Champion_ID
