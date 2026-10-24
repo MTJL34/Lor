@@ -590,6 +590,19 @@ function buildOptions(list, idKey, labelKey, currentId) {
     .join("");
 }
 
+function buildLevelOptions(currentId) {
+  const currentLevel = levelById.get(Number(currentId))?.Actual_Level;
+  if (currentLevel === "" || !Number.isFinite(Number(currentLevel))) {
+    return buildOptions(Level, "Level_ID", "Actual_Level", currentId);
+  }
+
+  const nearbyLevels = Level.filter(level => (
+    level.Actual_Level !== ""
+    && Math.abs(Number(level.Actual_Level) - Number(currentLevel)) <= 10
+  ));
+  return buildOptions(nearbyLevels, "Level_ID", "Actual_Level", currentId);
+}
+
 function formatJsValue(value) {
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -934,7 +947,7 @@ function renderTable() {
             data-champion-id="${champion.Champion_ID}"
             data-field="Level_ID"
           >
-            ${buildOptions(Level, "Level_ID", "Actual_Level", champion.Level_ID)}
+            ${buildLevelOptions(champion.Level_ID)}
           </select>
         ` : `
           <span class="${getLevelClass(MyLevel?.Actual_Level)}">${MyLevel?.Actual_Level ?? ""}</span>
