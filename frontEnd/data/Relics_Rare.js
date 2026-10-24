@@ -298,4 +298,39 @@ export const RelicsRare = [
         Relic_Description: "Quest: Win a 3+ Stard Adventure. Reward: Upgrade a Rare Reli Slot on this champion to Epic.",
         Relic_Icon: "https://dd.b.pvp.net/6_12_0/adventure/en_us/img/relics/R0069.png"
     },
+    {
+        Relic_ID: "Rare_44",
+        Relic_Name: "Blood Brand",
+        Relic_Rarity: "Rare",
+        Relic_Description: "When you play another ally, deal 1 to it and grant me +1|+1.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0169.png/140px-R0169.png?40125"
+    },
+    {
+        Relic_ID: "Rare_45",
+        Relic_Name: "Fate's Hand",
+        Relic_Rarity: "Rare",
+        Relic_Description: "Game Start: Add 10 random cards to your deck. Grant each a Common item, a Rare item, and an Epic item.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0177.png/140px-R0177.png?fccdd"
+    },
+    {
+        Relic_ID: "Rare_46",
+        Relic_Name: "Makeshift Mayhem",
+        Relic_Rarity: "Rare",
+        Relic_Description: "Play: Create 3 random cards in hand. They cost 1 and are Fleeting.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0162.png/70px-R0162.png?0df7f"
+    },
+    {
+        Relic_ID: "Rare_47",
+        Relic_Name: "Pack-A-Punch",
+        Relic_Rarity: "Rare",
+        Relic_Description: "Allies have Impact.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0170.png/70px-R0170.png?40125"
+    },
+    {
+        Relic_ID: "Rare_48",
+        Relic_Name: "The Equalizer",
+        Relic_Rarity: "Rare",
+        Relic_Description: "Play: Shrink the strongest enemy to my stats.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0178.png/70px-R0178.png?fccdd"
+    },
 ];

@@ -489,4 +489,102 @@ export const RelicsEpic = [
         Relic_Description: "Play: Shuffle 3 Snowballs into your deck. Attack: Grant +1|+1 to me and to all Snowballs in your deck.",
         Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/R0154.png?c8272"
     },
-]
+    {
+        Relic_ID: "Epic_71",
+        Relic_Name: "Price of Retribution",
+        Relic_Rarity: "Epic",
+        Relic_Description: "+2|+0 and Deathless. Power: When an ally dies, deal 1 to the enemy Nexus.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0166.png/70px-R0166.png?51271"
+    },
+    {
+        Relic_ID: "Epic_72",
+        Relic_Name: "Ranger's Command",
+        Relic_Rarity: "Epic",
+        Relic_Description: "+1|+0 and Quick Attack. Power: Round Start: If you have the attack token, grant a random ally Scout.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0164.png/70px-R0164.png?51271"
+    },
+    {
+        Relic_ID: "Epic_73",
+        Relic_Name: "Renewing Power",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Power: Each round, the first time you play a 6+ cost spell, refill mana equal to its cost.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0161.png/70px-R0161.png?0df7f"
+    },
+    {
+        Relic_ID: "Epic_74",
+        Relic_Name: "Rhythms of Despair",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Power: Allies in hand have 'Nightfall: Grant the weakest enemy 2 Gloom.'",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0175.png/70px-R0175.png?be802"
+    },
+    {
+        Relic_ID: "Epic_75",
+        Relic_Name: "Sentinel's Plate",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Barrier. When I survive damage, grant me +3|+3 and a random keyword.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0159.png/70px-R0159.png?30d61"
+    },
+    {
+        Relic_ID: "Epic_76",
+        Relic_Name: "Whirling Blade",
+        Relic_Rarity: "Epic",
+        Relic_Description: "When I'm summoned or Attack: Deal 1 to all enemies.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0160.png/70px-R0160.png?30d61"
+    },
+    {
+        Relic_ID: "Epic_77",
+        Relic_Name: "Demacia's Will",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Spellshield, Sharpsight. If I'm Garen, my non-combat strikes deal excess damage to the enemy Nexus.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0184.png/70px-R0184.png?4a900"
+    },
+    {
+        Relic_ID: "Epic_78",
+        Relic_Name: "Gale Gauntlet",
+        Relic_Rarity: "Epic",
+        Relic_Description: "+1|+1 and Attune. Power: Game Start: If I'm Janna, create a Divine Grace in your hand.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0182.png/70px-R0182.png?dd4c6"
+    },
+    {
+        Relic_ID: "Epic_79",
+        Relic_Name: "Harsh Lesson",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Regeneration. When I'm blocked, your strongest Tentacle strikes my blocker. Play: Spawn 2.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0181.png/70px-R0181.png?dc909"
+    },
+    {
+        Relic_ID: "Epic_80",
+        Relic_Name: "Hecarim's Glaive",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Quick Attack. If I'm Hecarim, +1 Starting Mana. Power: Game Start: Summon a Shark Chariot.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0183.png/70px-R0183.png?46a29"
+    },
+    {
+        Relic_ID: "Epic_81",
+        Relic_Name: "Innervating Locket",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Power: When you play a Stance Swap, heal your Nexus 2 and refill 1 spell mana.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0155.png/70px-R0155.png?1497a"
+    },
+    {
+        Relic_ID: "Epic_82",
+        Relic_Name: "Kinkou Tradition",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Elusive. When an ally gets Barrier, grant them a random keyword and refill 1 mana.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0186.png/70px-R0186.png?9fecd"
+    },
+    {
+        Relic_ID: "Epic_83",
+        Relic_Name: "Mark of the Kindred",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Deathless. When I'm summoned, mark the weakest enemy and shrink its health to 1.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0185.png/70px-R0185.png?283bf"
+    },
+    {
+        Relic_ID: "Epic_84",
+        Relic_Name: "Space Puppy!!!",
+        Relic_Rarity: "Epic",
+        Relic_Description: "Spellshield. Play: Invoke a Celestial card that costs 7 or more. You can find Aurelion Sol in this Invoke.",
+        Relic_Icon: "https://wiki.leagueoflegends.com/en-us/images/thumb/R0180.png/70px-R0180.png?3a314"
+    },
+];
