@@ -590,18 +590,94 @@ function buildOptions(list, idKey, labelKey, currentId) {
     .join("");
 }
 
-function buildLevelOptions(currentId) {
-  const currentLevel = levelById.get(Number(currentId))?.Actual_Level;
-  if (currentLevel === "" || !Number.isFinite(Number(currentLevel))) {
-    return buildOptions(Level, "Level_ID", "Actual_Level", currentId);
-  }
+let levelMenu = null;
 
-  const nearbyLevels = Level.filter(level => (
-    level.Actual_Level !== ""
-    && Math.abs(Number(level.Actual_Level) - Number(currentLevel)) <= 10
-  ));
-  return buildOptions(nearbyLevels, "Level_ID", "Actual_Level", currentId);
+function closeLevelMenu() {
+  if (!levelMenu) return;
+  levelMenu.button.setAttribute("aria-expanded", "false");
+  levelMenu.element.remove();
+  levelMenu = null;
 }
+
+function openLevelMenu(button) {
+  if (levelMenu?.button === button) {
+    closeLevelMenu();
+    return;
+  }
+  closeLevelMenu();
+  const select = button.parentElement.querySelector('select[data-field="Level_ID"]');
+  const levels = Level.filter(level => level.Actual_Level !== "");
+  const currentIndex = Math.max(0, levels.findIndex(level => Number(level.Level_ID) === Number(select.value)));
+  const menu = document.createElement("div");
+  menu.className = "level-picker-menu";
+  menu.setAttribute("role", "listbox");
+  menu.setAttribute("aria-label", "Niveau du champion");
+  menu.tabIndex = -1;
+  const rect = button.getBoundingClientRect();
+  const rowHeight = 30;
+  const availableHeight = Math.max(0, window.innerHeight - 16);
+  const visibleRows = Math.max(1, Math.min(11, Math.floor(availableHeight / rowHeight)));
+  const height = visibleRows * rowHeight;
+  const top = Math.max(8, Math.min(rect.top - Math.floor(visibleRows / 2) * rowHeight, window.innerHeight - height - 8));
+  Object.assign(menu.style, {
+    position: "fixed", top: `${top}px`,
+    left: `${Math.max(8, Math.min(rect.left, window.innerWidth - 108))}px`,
+    width: `${Math.max(100, rect.width)}px`, height: `${height}px`
+  });
+  let activeIndex = currentIndex;
+  const options = levels.map((level, index) => {
+    const option = document.createElement("div");
+    option.className = "level-picker-option";
+    option.id = `level-option-${button.dataset.championId}-${level.Level_ID}`;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(index === currentIndex));
+    option.textContent = String(level.Actual_Level);
+    option.addEventListener("click", () => choose(index));
+    menu.appendChild(option);
+    return option;
+  });
+  function activate(index) {
+    activeIndex = Math.max(0, Math.min(levels.length - 1, index));
+    options.forEach((option, i) => option.classList.toggle("active", i === activeIndex));
+    menu.setAttribute("aria-activedescendant", options[activeIndex].id);
+  }
+  function choose(index) {
+    const nextValue = String(levels[index].Level_ID);
+    closeLevelMenu();
+    button.focus();
+    if (select.value !== nextValue) {
+      select.value = nextValue;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+  menu.addEventListener("keydown", event => {
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      activate(event.key === "Home" ? 0 : event.key === "End" ? levels.length - 1 : activeIndex + (event.key === "ArrowDown" ? 1 : -1));
+      options[activeIndex].scrollIntoView({ block: "nearest" });
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      choose(activeIndex);
+    } else if (event.key === "Escape" || event.key === "Tab") {
+      closeLevelMenu();
+      button.focus();
+    }
+  });
+  levelMenu = { element: menu, button };
+  button.setAttribute("aria-expanded", "true");
+  document.body.appendChild(menu);
+  activate(currentIndex);
+  menu.focus({ preventScroll: true });
+  menu.scrollTop = Math.max(0, (currentIndex - Math.floor(visibleRows / 2)) * rowHeight);
+}
+
+document.addEventListener("pointerdown", event => {
+  if (levelMenu && !levelMenu.element.contains(event.target) && !levelMenu.button.contains(event.target)) closeLevelMenu();
+});
+window.addEventListener("resize", closeLevelMenu);
+window.addEventListener("scroll", event => {
+  if (levelMenu && !levelMenu.element.contains(event.target)) closeLevelMenu();
+}, true);
 
 function formatJsValue(value) {
   if (typeof value === "string") return JSON.stringify(value);
@@ -795,6 +871,7 @@ function closeRelicMenu() {
 }
 
 function renderTable() {
+  closeLevelMenu();
   tbody.innerHTML = "";
 
   const effectiveChampions = getAllChampions().map(getEffectiveChampion);
@@ -946,9 +1023,15 @@ function renderTable() {
             class="stat-select"
             data-champion-id="${champion.Champion_ID}"
             data-field="Level_ID"
+            hidden
           >
-            ${buildLevelOptions(champion.Level_ID)}
+            ${buildOptions(Level, "Level_ID", "Actual_Level", champion.Level_ID)}
           </select>
+          <button type="button" class="stat-select level-picker-button"
+            data-champion-id="${champion.Champion_ID}" aria-haspopup="listbox"
+            aria-expanded="false" aria-label="Modifier le niveau de ${escapeHtml(champion.Champion_Name)}">
+            ${MyLevel?.Actual_Level || "-"} ▾
+          </button>
         ` : `
           <span class="${getLevelClass(MyLevel?.Actual_Level)}">${MyLevel?.Actual_Level ?? ""}</span>
         `}
@@ -1266,6 +1349,11 @@ tbody.addEventListener("change", (event) => {
 
 tbody.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
+  const levelButton = event.target.closest(".level-picker-button");
+  if (levelButton) {
+    openLevelMenu(levelButton);
+    return;
+  }
   const editBtn = event.target.closest(".edit-btn");
   if (!editBtn) return;
 

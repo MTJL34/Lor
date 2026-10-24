@@ -429,6 +429,42 @@ th, td {
     cursor: pointer;
 }
 
+.level-picker-button {
+    cursor: pointer;
+    text-align: left;
+}
+
+.level-picker-menu {
+    z-index: 10000;
+    box-sizing: content-box;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    outline: none;
+}
+
+.level-picker-option {
+    box-sizing: border-box;
+    height: 30px;
+    line-height: 30px;
+    padding: 0 12px;
+    cursor: pointer;
+}
+
+.level-picker-option:hover,
+.level-picker-option.active {
+    background: var(--bg-light);
+}
+
+.level-picker-option[aria-selected="true"] {
+    color: var(--primary);
+    font-weight: 700;
+}
+
 .edit-btn {
     background: var(--bg-light);
     color: var(--text-primary);
